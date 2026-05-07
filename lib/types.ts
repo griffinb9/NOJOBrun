@@ -1,4 +1,4 @@
-export type JobStatus = 'applied' | 'interviewing' | 'offer' | 'rejected' | 'ghosted';
+export type JobStatus = 'applied' | 'recruiter_screen' | 'interviewing' | 'offer' | 'rejected' | 'ghosted';
 
 export interface UserProfile {
   id: string;
@@ -44,6 +44,7 @@ export interface AppSettings {
 
 export const KANBAN_COLUMNS: { id: JobStatus; label: string; color: string }[] = [
   { id: 'applied', label: 'Applied', color: 'blue' },
+  { id: 'recruiter_screen', label: 'Recruiter Screen', color: 'sky' },
   { id: 'interviewing', label: 'Interviewing', color: 'violet' },
   { id: 'offer', label: 'Offer', color: 'green' },
   { id: 'rejected', label: 'Rejected', color: 'red' },
@@ -52,6 +53,7 @@ export const KANBAN_COLUMNS: { id: JobStatus; label: string; color: string }[] =
 
 export const STATUS_COLORS: Record<JobStatus, string> = {
   applied: 'bg-blue-100 text-blue-700 border-blue-200',
+  recruiter_screen: 'bg-sky-100 text-sky-700 border-sky-200',
   interviewing: 'bg-violet-100 text-violet-700 border-violet-200',
   offer: 'bg-green-100 text-green-700 border-green-200',
   rejected: 'bg-red-100 text-red-600 border-red-200',
@@ -60,10 +62,20 @@ export const STATUS_COLORS: Record<JobStatus, string> = {
 
 export const STATUS_BORDER: Record<JobStatus, string> = {
   applied: 'border-l-blue-400',
+  recruiter_screen: 'border-l-sky-400',
   interviewing: 'border-l-violet-400',
   offer: 'border-l-green-400',
   rejected: 'border-l-red-400',
   ghosted: 'border-l-stone-300',
+};
+
+export const STATUS_LABELS: Record<JobStatus, string> = {
+  applied: 'Applied',
+  recruiter_screen: 'Recruiter Screen',
+  interviewing: 'Interviewing',
+  offer: 'Offer',
+  rejected: 'Rejected',
+  ghosted: 'Ghosted',
 };
 
 // ─── Points & Rank System ─────────────────────────────────────────────────────
@@ -71,6 +83,7 @@ export const STATUS_BORDER: Record<JobStatus, string> = {
 export type PointEventType =
   | 'application_added'
   | 'follow_up_sent'
+  | 'status_recruiter_screen'
   | 'status_interviewing'
   | 'status_offer'
   | 'status_rejected'
@@ -80,6 +93,7 @@ export type PointEventType =
 export const POINT_VALUES: Record<PointEventType, number> = {
   application_added: 5,
   follow_up_sent: 5,
+  status_recruiter_screen: 15,
   status_interviewing: 25,
   status_offer: 100,
   status_rejected: 2,
@@ -90,6 +104,7 @@ export const POINT_VALUES: Record<PointEventType, number> = {
 export const POINT_DESCRIPTIONS: Record<PointEventType, string> = {
   application_added: 'Added a job application',
   follow_up_sent: 'Sent a follow-up email',
+  status_recruiter_screen: 'Recruiter screen scheduled',
   status_interviewing: 'Interview scheduled',
   status_offer: 'Offer received',
   status_rejected: 'Logged a rejection',
@@ -100,6 +115,7 @@ export const POINT_DESCRIPTIONS: Record<PointEventType, string> = {
 // Events that should only be awarded once per application
 export const DEDUPLICATED_EVENT_TYPES: PointEventType[] = [
   'application_added',
+  'status_recruiter_screen',
   'status_interviewing',
   'status_offer',
   'status_rejected',

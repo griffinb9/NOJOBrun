@@ -56,7 +56,7 @@ export default function Dashboard() {
   const title = getDashboardTitle(profile.fullName);
 
   const total = jobs.length;
-  const interviews = jobs.filter((j) => j.status === 'interviewing').length;
+  const interviews = jobs.filter((j) => j.status === 'interviewing' || j.status === 'recruiter_screen').length;
   const offers = jobs.filter((j) => j.status === 'offer').length;
   const responseRate =
     total === 0 ? 0 : Math.round(((interviews + offers) / total) * 100);

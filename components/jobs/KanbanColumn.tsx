@@ -8,6 +8,7 @@ import JobCard from './JobCard';
 
 const COL_HEADER_COLORS: Record<string, string> = {
   applied: 'bg-blue-500',
+  recruiter_screen: 'bg-sky-400',
   interviewing: 'bg-violet-500',
   offer: 'bg-green-500',
   rejected: 'bg-red-400',

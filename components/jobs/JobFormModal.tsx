@@ -81,7 +81,8 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
 
       // Award points for status changes
       if (form.status !== job.status) {
-        if (form.status === 'interviewing') awardPoints('status_interviewing', job.id);
+        if (form.status === 'recruiter_screen') awardPoints('status_recruiter_screen', job.id);
+        else if (form.status === 'interviewing') awardPoints('status_interviewing', job.id);
         else if (form.status === 'offer') awardPoints('status_offer', job.id);
         else if (form.status === 'rejected') awardPoints('status_rejected', job.id);
       }
@@ -94,8 +95,9 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
       storage.addJob({ ...form, id, createdAt: ts, updatedAt: ts });
       awardPoints('application_added', id);
 
-      // Award for status if created directly into interviewing/offer/rejected
-      if (form.status === 'interviewing') awardPoints('status_interviewing', id);
+      // Award for status if created directly into a non-applied status
+      if (form.status === 'recruiter_screen') awardPoints('status_recruiter_screen', id);
+      else if (form.status === 'interviewing') awardPoints('status_interviewing', id);
       else if (form.status === 'offer') awardPoints('status_offer', id);
       else if (form.status === 'rejected') awardPoints('status_rejected', id);
 
