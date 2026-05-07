@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
 import { storage } from '@/lib/storage';
 import { newId, now } from '@/lib/utils';
+import { awardPoints } from '@/lib/points';
 
 interface Props {
   open: boolean;
@@ -73,11 +74,35 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
   function save() {
     if (!form.company.trim() || !form.role.trim()) return;
     const ts = now();
+
     if (job) {
+      // Editing an existing job
       storage.updateJob({ ...job, ...form, updatedAt: ts });
+
+      // Award points for status changes
+      if (form.status !== job.status) {
+        if (form.status === 'interviewing') awardPoints('status_interviewing', job.id);
+        else if (form.status === 'offer') awardPoints('status_offer', job.id);
+        else if (form.status === 'rejected') awardPoints('status_rejected', job.id);
+      }
+
+      // Award notes_added once when notes go from empty to present
+      if (form.notes?.trim()) awardPoints('notes_added', job.id);
     } else {
-      storage.addJob({ ...form, id: newId(), createdAt: ts, updatedAt: ts });
+      // Creating a new job
+      const id = newId();
+      storage.addJob({ ...form, id, createdAt: ts, updatedAt: ts });
+      awardPoints('application_added', id);
+
+      // Award for status if created directly into interviewing/offer/rejected
+      if (form.status === 'interviewing') awardPoints('status_interviewing', id);
+      else if (form.status === 'offer') awardPoints('status_offer', id);
+      else if (form.status === 'rejected') awardPoints('status_rejected', id);
+
+      // Award notes_added if notes present at creation
+      if (form.notes?.trim()) awardPoints('notes_added', id);
     }
+
     onClose();
   }
 

@@ -14,6 +14,7 @@ import { Plus } from 'lucide-react';
 import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
 import { storage } from '@/lib/storage';
 import { now } from '@/lib/utils';
+import { awardPoints } from '@/lib/points';
 import KanbanColumn from './KanbanColumn';
 import JobCard from './JobCard';
 import JobFormModal from './JobFormModal';
@@ -49,6 +50,11 @@ export default function KanbanBoard() {
 
     const job = jobs.find((j) => j.id === active.id);
     if (!job || job.status === newStatus) return;
+
+    // Award points for status changes via drag
+    if (newStatus === 'interviewing') awardPoints('status_interviewing', job.id);
+    else if (newStatus === 'offer') awardPoints('status_offer', job.id);
+    else if (newStatus === 'rejected') awardPoints('status_rejected', job.id);
 
     const updated = { ...job, status: newStatus, updatedAt: now() };
     storage.updateJob(updated);

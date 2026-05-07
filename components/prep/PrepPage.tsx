@@ -5,7 +5,7 @@ import { ArrowLeft, RefreshCw, Copy, Check, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Job } from '@/lib/types';
 import { storage } from '@/lib/storage';
-
+import { awardPoints } from '@/lib/points';
 
 interface Props {
   paramsPromise: Promise<{ jobId: string }>;
@@ -81,6 +81,9 @@ export default function PrepPage({ paramsPromise }: Props) {
           prev.map((s) => (s.key === key ? { ...s, content: t } : s))
         );
       }
+
+      // Award once per job — deduplication prevents repeat awards
+      if (job) awardPoints('interview_prep_generated', job.id);
     } catch {
       setSections((prev) =>
         prev.map((s) =>

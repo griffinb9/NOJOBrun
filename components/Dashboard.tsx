@@ -6,11 +6,13 @@ import { Plus, Briefcase, TrendingUp, Calendar, Clock } from 'lucide-react';
 import { storage } from '@/lib/storage';
 import { Job, STATUS_COLORS, STATUS_BORDER } from '@/lib/types';
 import JobFormModal from './jobs/JobFormModal';
+import RankCard from './dashboard/RankCard';
 import { formatDate, daysSince } from '@/lib/utils';
 
 export default function Dashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [rankKey, setRankKey] = useState(0);
 
   function load() {
     setJobs(storage.getJobs());
@@ -19,6 +21,12 @@ export default function Dashboard() {
   useEffect(() => {
     load();
   }, []);
+
+  function handleJobAdded() {
+    setAddOpen(false);
+    load();
+    setRankKey((k) => k + 1);
+  }
 
   const total = jobs.length;
   const interviews = jobs.filter((j) => j.status === 'interviewing').length;
@@ -70,6 +78,9 @@ export default function Dashboard() {
           Add Job
         </button>
       </div>
+
+      {/* Personal Rank */}
+      <RankCard refreshKey={rankKey} />
 
       {/* Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -130,7 +141,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <JobFormModal open={addOpen} onClose={() => { setAddOpen(false); load(); }} />
+      <JobFormModal open={addOpen} onClose={handleJobAdded} />
     </div>
   );
 }

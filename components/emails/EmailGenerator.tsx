@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Check, Loader2 } from 'lucide-react';
+import { Copy, Check, Loader2, Send } from 'lucide-react';
 import { Job } from '@/lib/types';
 import { storage } from '@/lib/storage';
+import { awardPoints } from '@/lib/points';
 
 type EmailType = 'thank-you' | 'check-in';
 
 const EMAIL_OPTIONS: { type: EmailType; label: string; description: string }[] = [
   { type: 'thank-you', label: 'Post-Interview Thank You', description: 'Send after a phone screen or interview' },
-  { type: 'check-in', label: 'Status Check-In', description: 'Follow up when you haven\'t heard back' },
+  { type: 'check-in', label: 'Status Check-In', description: "Follow up when you haven't heard back" },
 ];
 
 export default function EmailGenerator({ job }: { job: Job }) {
@@ -17,12 +18,14 @@ export default function EmailGenerator({ job }: { job: Job }) {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [markedSent, setMarkedSent] = useState(false);
   const [error, setError] = useState('');
 
   async function generate(type: EmailType) {
     setSelected(type);
     setContent('');
     setError('');
+    setMarkedSent(false);
     setLoading(true);
 
     const apiKey = storage.getSettings().anthropicApiKey;
@@ -65,6 +68,11 @@ export default function EmailGenerator({ job }: { job: Job }) {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  function markSent() {
+    awardPoints('follow_up_sent', job.id);
+    setMarkedSent(true);
+  }
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-stone-500">Generate a follow-up email draft for this application.</p>
@@ -98,7 +106,9 @@ export default function EmailGenerator({ job }: { job: Job }) {
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-stone-500">
               {loading ? (
-                <span className="flex items-center gap-1.5"><Loader2 size={12} className="animate-spin" /> Generating...</span>
+                <span className="flex items-center gap-1.5">
+                  <Loader2 size={12} className="animate-spin" /> Generating...
+                </span>
               ) : 'Draft'}
             </span>
             {content && !loading && (
@@ -116,6 +126,25 @@ export default function EmailGenerator({ job }: { job: Job }) {
             rows={12}
             className="w-full text-sm border border-stone-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-violet-300 resize-none bg-stone-50"
           />
+
+          {/* Mark as Sent — awards follow_up_sent points */}
+          {content && !loading && (
+            <button
+              onClick={markSent}
+              disabled={markedSent}
+              className={`flex items-center gap-2 w-full justify-center py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+                markedSent
+                  ? 'bg-green-50 text-green-600 border-green-200 cursor-default'
+                  : 'border-stone-200 text-stone-500 hover:border-violet-300 hover:text-violet-600 hover:bg-violet-50'
+              }`}
+            >
+              {markedSent ? (
+                <><Check size={14} /> Marked as sent · +5 pts</>
+              ) : (
+                <><Send size={14} /> Mark as Sent</>
+              )}
+            </button>
+          )}
         </div>
       )}
     </div>

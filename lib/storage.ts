@@ -1,9 +1,22 @@
-import { Job, Story, AppSettings } from './types';
+import { Job, Story, AppSettings, PointEvent, UserProgress } from './types';
 
 const KEYS = {
   jobs: 'nojob_jobs',
   stories: 'nojob_stories',
   settings: 'nojob_settings',
+  pointEvents: 'nojob_point_events',
+  userProgress: 'nojob_user_progress',
+};
+
+const DEFAULT_PROGRESS: UserProgress = {
+  totalPoints: 0,
+  currentRank: 'Underdog',
+  weeklyPoints: 0,
+  weeklyGoal: 50,
+  weekStartDate: new Date().toISOString(),
+  lastActivityDate: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 };
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -55,4 +68,15 @@ export const storage = {
   // Settings
   getSettings: (): AppSettings => safeGet<AppSettings>(KEYS.settings, {}),
   saveSettings: (settings: AppSettings) => safeSet(KEYS.settings, settings),
+
+  // Point events
+  getPointEvents: (): PointEvent[] => safeGet<PointEvent[]>(KEYS.pointEvents, []),
+  savePointEvents: (events: PointEvent[]) => safeSet(KEYS.pointEvents, events),
+  addPointEvent: (event: PointEvent) => {
+    storage.savePointEvents([...storage.getPointEvents(), event]);
+  },
+
+  // User progress (auto-creates default if missing)
+  getUserProgress: (): UserProgress => safeGet<UserProgress>(KEYS.userProgress, DEFAULT_PROGRESS),
+  saveUserProgress: (progress: UserProgress) => safeSet(KEYS.userProgress, progress),
 };
