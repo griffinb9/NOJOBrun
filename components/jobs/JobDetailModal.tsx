@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { X, ExternalLink, Pencil, Trash2 } from 'lucide-react';
-import { Job, STATUS_COLORS } from '@/lib/types';
+import { Job, STATUS_COLORS, STATUS_LABELS } from '@/lib/types';
 import { storage } from '@/lib/storage';
 import { formatDate } from '@/lib/utils';
 import JobFormModal from './JobFormModal';
@@ -43,8 +43,8 @@ export default function JobDetailModal({ job, onClose, onEdit }: Props) {
             <div className="flex-1 min-w-0 mr-4">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-bold text-stone-800">{job.company}</h2>
-                <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${STATUS_COLORS[job.status]}`}>
-                  {job.status}
+                <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[job.status]}`}>
+                  {STATUS_LABELS[job.status]}
                 </span>
               </div>
               <p className="text-stone-500 text-sm mt-0.5">{job.role}</p>
@@ -135,7 +135,7 @@ function DetailsTab({ job }: { job: Job }) {
       <Row label="Role" value={job.role} />
       <Row label="Location" value={job.location} />
       <Row label="Salary" value={job.salary} />
-      <Row label="Status" value={job.status} />
+      <Row label="Status" value={STATUS_LABELS[job.status]} />
       <Row label="Date Applied" value={job.dateApplied ? formatDate(job.dateApplied) : undefined} />
       {job.interviewDates && job.interviewDates.length > 0 && (
         <div className="flex gap-3">

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Briefcase, TrendingUp, Calendar, Clock } from 'lucide-react';
 import { storage } from '@/lib/storage';
-import { Job, UserProfile, STATUS_COLORS, STATUS_BORDER } from '@/lib/types';
+import { Job, UserProfile, STATUS_COLORS, STATUS_BORDER, STATUS_LABELS } from '@/lib/types';
 import JobFormModal from './jobs/JobFormModal';
 import RankCard from './dashboard/RankCard';
 import ProfileSetupModal from './ui/ProfileSetupModal';
@@ -157,9 +157,9 @@ export default function Dashboard() {
                     <span className="text-xs text-stone-400">{formatDate(job.dateApplied)}</span>
                   )}
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full border capitalize ${STATUS_COLORS[job.status]}`}
+                    className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[job.status]}`}
                   >
-                    {job.status}
+                    {STATUS_LABELS[job.status]}
                   </span>
                 </div>
               </div>
