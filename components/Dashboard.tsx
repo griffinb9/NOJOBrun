@@ -4,15 +4,17 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Briefcase, TrendingUp, Calendar, Clock } from 'lucide-react';
 import { storage } from '@/lib/storage';
-import { Job, STATUS_COLORS, STATUS_BORDER } from '@/lib/types';
+import { Job, UserProfile, STATUS_COLORS, STATUS_BORDER } from '@/lib/types';
 import JobFormModal from './jobs/JobFormModal';
 import RankCard from './dashboard/RankCard';
-import { formatDate, daysSince } from '@/lib/utils';
+import ProfileSetupModal from './ui/ProfileSetupModal';
+import { formatDate, daysSince, getDashboardTitle } from '@/lib/utils';
 
 export default function Dashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [rankKey, setRankKey] = useState(0);
+  const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
 
   function load() {
     setJobs(storage.getJobs());
@@ -20,12 +22,17 @@ export default function Dashboard() {
 
   useEffect(() => {
     load();
+    setProfile(storage.getUserProfile());
   }, []);
 
   function handleJobAdded() {
     setAddOpen(false);
     load();
     setRankKey((k) => k + 1);
+  }
+
+  function handleProfileComplete(p: UserProfile) {
+    setProfile(p);
   }
 
   const total = jobs.length;
@@ -62,12 +69,30 @@ export default function Dashboard() {
     },
   ];
 
+  // undefined = still hydrating, null = no profile yet, UserProfile = ready
+  if (profile === undefined) return null;
+  if (profile === null) {
+    return <ProfileSetupModal onComplete={handleProfileComplete} />;
+  }
+
+  const title = getDashboardTitle(profile.fullName);
+
+  // Re-read profile when edited via the Settings modal (dispatches a custom event)
+  useEffect(() => {
+    function onProfileUpdated() {
+      const latest = storage.getUserProfile();
+      if (latest) setProfile(latest);
+    }
+    window.addEventListener('nojob:profile-updated', onProfileUpdated);
+    return () => window.removeEventListener('nojob:profile-updated', onProfileUpdated);
+  }, []);
+
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto w-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-stone-800">{title}</h1>
           <p className="text-stone-400 text-sm mt-0.5">Your job search at a glance</p>
         </div>
         <button

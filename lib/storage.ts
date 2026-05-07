@@ -1,4 +1,4 @@
-import { Job, Story, AppSettings, PointEvent, UserProgress } from './types';
+import { Job, Story, AppSettings, PointEvent, UserProgress, UserProfile } from './types';
 
 const KEYS = {
   jobs: 'nojob_jobs',
@@ -6,6 +6,7 @@ const KEYS = {
   settings: 'nojob_settings',
   pointEvents: 'nojob_point_events',
   userProgress: 'nojob_user_progress',
+  userProfile: 'nojob_user_profile',
 };
 
 const DEFAULT_PROGRESS: UserProgress = {
@@ -26,6 +27,16 @@ function safeGet<T>(key: string, fallback: T): T {
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
+  }
+}
+
+function safeGetNullable<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
   }
 }
 
@@ -79,4 +90,8 @@ export const storage = {
   // User progress (auto-creates default if missing)
   getUserProgress: (): UserProgress => safeGet<UserProgress>(KEYS.userProgress, DEFAULT_PROGRESS),
   saveUserProgress: (progress: UserProgress) => safeSet(KEYS.userProgress, progress),
+
+  // User profile (null = not set up yet → triggers onboarding)
+  getUserProfile: (): UserProfile | null => safeGetNullable<UserProfile>(KEYS.userProfile),
+  saveUserProfile: (profile: UserProfile) => safeSet(KEYS.userProfile, profile),
 };

@@ -16,3 +16,15 @@ export function newId(): string {
 export function now(): string {
   return new Date().toISOString();
 }
+
+export function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+/** Returns "Griffin's Job Hunt", "James's Job Hunt", or "My Job Hunt" */
+export function getDashboardTitle(fullName?: string | null): string {
+  const name = fullName?.trim();
+  if (!name) return "My Job Hunt";
+  const firstName = name.split(/\s+/)[0];
+  return `${firstName}'s Job Hunt`;
+}
