@@ -11,19 +11,31 @@ import ProfileSetupModal from './ui/ProfileSetupModal';
 import { formatDate, daysSince, getDashboardTitle } from '@/lib/utils';
 
 export default function Dashboard() {
+  // ── All hooks unconditionally at the top ─────────────────────────────────
   const [jobs, setJobs] = useState<Job[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [rankKey, setRankKey] = useState(0);
+  // undefined = hydrating | null = no profile yet | UserProfile = ready
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
+
+  useEffect(() => {
+    setJobs(storage.getJobs());
+    setProfile(storage.getUserProfile());
+  }, []);
+
+  useEffect(() => {
+    function onProfileUpdated() {
+      const latest = storage.getUserProfile();
+      if (latest) setProfile(latest);
+    }
+    window.addEventListener('nojob:profile-updated', onProfileUpdated);
+    return () => window.removeEventListener('nojob:profile-updated', onProfileUpdated);
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
 
   function load() {
     setJobs(storage.getJobs());
   }
-
-  useEffect(() => {
-    load();
-    setProfile(storage.getUserProfile());
-  }, []);
 
   function handleJobAdded() {
     setAddOpen(false);
@@ -34,6 +46,14 @@ export default function Dashboard() {
   function handleProfileComplete(p: UserProfile) {
     setProfile(p);
   }
+
+  // Conditional returns — safe here because all hooks have already been called
+  if (profile === undefined) return null;
+  if (profile === null) {
+    return <ProfileSetupModal onComplete={handleProfileComplete} />;
+  }
+
+  const title = getDashboardTitle(profile.fullName);
 
   const total = jobs.length;
   const interviews = jobs.filter((j) => j.status === 'interviewing').length;
@@ -68,24 +88,6 @@ export default function Dashboard() {
       bg: 'bg-amber-50',
     },
   ];
-
-  // undefined = still hydrating, null = no profile yet, UserProfile = ready
-  if (profile === undefined) return null;
-  if (profile === null) {
-    return <ProfileSetupModal onComplete={handleProfileComplete} />;
-  }
-
-  const title = getDashboardTitle(profile.fullName);
-
-  // Re-read profile when edited via the Settings modal (dispatches a custom event)
-  useEffect(() => {
-    function onProfileUpdated() {
-      const latest = storage.getUserProfile();
-      if (latest) setProfile(latest);
-    }
-    window.addEventListener('nojob:profile-updated', onProfileUpdated);
-    return () => window.removeEventListener('nojob:profile-updated', onProfileUpdated);
-  }, []);
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto w-full">
