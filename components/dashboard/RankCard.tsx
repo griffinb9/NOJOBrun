@@ -118,6 +118,7 @@ export default function RankCard({ refreshKey }: Props) {
 
 const QUICK_TIPS = [
   { label: 'Apply', pts: 5 },
+  { label: 'Recruiter Screen', pts: 15 },
   { label: 'Interview', pts: 25 },
   { label: 'Prep', pts: 10 },
   { label: 'Notes', pts: 3 },

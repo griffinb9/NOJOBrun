@@ -60,7 +60,7 @@ function isCurrentWeek(dateStr: string): boolean {
  * Awards points for a user action. Returns true if points were awarded,
  * false if the event was blocked by deduplication.
  */
-export function awardPoints(eventType: PointEventType, applicationId?: string): boolean {
+export function awardPoints(eventType: PointEventType, applicationId?: string, descriptionOverride?: string): boolean {
   const events = storage.getPointEvents();
 
   // Block duplicate awards for one-time-per-application events
@@ -78,7 +78,7 @@ export function awardPoints(eventType: PointEventType, applicationId?: string): 
     applicationId,
     eventType,
     points,
-    description: POINT_DESCRIPTIONS[eventType],
+    description: descriptionOverride ?? POINT_DESCRIPTIONS[eventType],
     createdAt: now(),
   };
 

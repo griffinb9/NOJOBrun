@@ -52,7 +52,7 @@ export default function KanbanBoard() {
     if (!job || job.status === newStatus) return;
 
     // Award points for status changes via drag
-    if (newStatus === 'recruiter_screen') awardPoints('status_recruiter_screen', job.id);
+    if (newStatus === 'recruiter_screen') awardPoints('status_recruiter_screen', job.id, `Recruiter screen earned for ${job.company}`);
     else if (newStatus === 'interviewing') awardPoints('status_interviewing', job.id);
     else if (newStatus === 'offer') awardPoints('status_offer', job.id);
     else if (newStatus === 'rejected') awardPoints('status_rejected', job.id);
