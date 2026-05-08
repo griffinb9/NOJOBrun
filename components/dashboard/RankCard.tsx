@@ -12,15 +12,6 @@ interface Props {
   refreshKey?: number;
 }
 
-// Hex colors matching the Tailwind bar colors in RANK_TIERS
-const RANK_RING_COLOR: Record<string, string> = {
-  'Underdog':      '#A8A29E', // stone-400
-  'On the Rise':   '#3B82F6', // blue-500
-  'Locked In':     '#8B5CF6', // violet-500
-  'Interview Pro': '#F59E0B', // amber-500
-  'Offer Season':  '#10B981', // emerald-500
-};
-
 const RANK_ICON: Record<string, LucideIcon> = {
   'Underdog':      Flame,
   'On the Rise':   TrendingUp,
@@ -28,6 +19,18 @@ const RANK_ICON: Record<string, LucideIcon> = {
   'Interview Pro': BadgeCheck,
   'Offer Season':  Trophy,
 };
+
+// Subtle card bg tint per rank — barely perceptible, adds depth
+const RANK_CARD_BG: Record<string, string> = {
+  'Underdog':      'from-white to-slate-50',
+  'On the Rise':   'from-white to-blue-50/40',
+  'Locked In':     'from-white to-violet-50/40',
+  'Interview Pro': 'from-white to-amber-50/40',
+  'Offer Season':  'from-white to-emerald-50/40',
+};
+
+// Weekly bar: gradient for active, emerald for goal hit
+const WEEKLY_BAR = 'bg-gradient-to-r from-blue-400 to-violet-500';
 
 export default function RankCard({ refreshKey }: Props) {
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -43,17 +46,17 @@ export default function RankCard({ refreshKey }: Props) {
   const isMaxRank = !next;
 
   const RankIcon = RANK_ICON[current.name] ?? Flame;
-  const ringColor = RANK_RING_COLOR[current.name] ?? '#3B82F6';
+  const cardBg = RANK_CARD_BG[current.name] ?? 'from-white to-slate-50';
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden mb-10">
-      {/* Colored top strip */}
-      <div className={`h-[3px] w-full ${current.barColor}`} />
+    <div className={`bg-gradient-to-br ${cardBg} rounded-2xl border border-stone-100 shadow-sm overflow-hidden mb-10`}>
+      {/* Gradient top strip */}
+      <div className="h-[3px] w-full bg-gradient-to-r from-blue-500 to-violet-600" />
 
       <div className="p-5 md:p-7">
         <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
 
-          {/* Ring + rank icon stacked */}
+          {/* Ring + rank icon badge */}
           <div className="flex justify-center md:justify-start shrink-0">
             <div className="relative">
               <CircularProgress
@@ -62,9 +65,7 @@ export default function RankCard({ refreshKey }: Props) {
                 nextRankMin={next?.minPoints ?? null}
                 rankName={current.name}
                 size={152}
-                color={ringColor}
               />
-              {/* Rank icon badge — bottom-right of ring */}
               <div className={`
                 absolute -bottom-1.5 -right-1.5
                 w-8 h-8 rounded-full border-2 border-white shadow-sm
@@ -98,7 +99,9 @@ export default function RankCard({ refreshKey }: Props) {
                 </p>
               ) : (
                 <p className="text-sm text-stone-500">
-                  <span className={`font-semibold ${current.accentColor}`}>{pointsToNext} pts</span>
+                  <span className="font-semibold bg-gradient-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">
+                    {pointsToNext} pts
+                  </span>
                   {' '}to reach{' '}
                   <span className="font-semibold text-stone-700">{next!.name}</span>.
                 </p>
@@ -109,7 +112,9 @@ export default function RankCard({ refreshKey }: Props) {
             <div className="mt-4 flex items-center gap-5 flex-wrap">
               {QUICK_TIPS.map(({ label, pts }) => (
                 <div key={label} className="flex items-center gap-1">
-                  <span className={`text-xs font-bold ${current.accentColor}`}>+{pts}</span>
+                  <span className="text-xs font-bold bg-gradient-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">
+                    +{pts}
+                  </span>
                   <span className="text-xs text-stone-400">{label}</span>
                 </div>
               ))}
@@ -137,7 +142,7 @@ export default function RankCard({ refreshKey }: Props) {
             <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
-                  weeklyPercent >= 100 ? 'bg-emerald-400' : current.barColor
+                  weeklyPercent >= 100 ? 'bg-emerald-400' : WEEKLY_BAR
                 }`}
                 style={{ width: `${weeklyPercent}%` }}
               />

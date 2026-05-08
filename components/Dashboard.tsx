@@ -110,7 +110,7 @@ export default function Dashboard() {
         </div>
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 bg-violet-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-violet-700 active:scale-[0.97] transition-all shrink-0 shadow-sm"
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 active:scale-[0.97] transition-all shrink-0 shadow-sm"
         >
           <Plus size={15} strokeWidth={2.5} />
           Add Job

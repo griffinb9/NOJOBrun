@@ -22,7 +22,9 @@ export default function Sidebar() {
       <aside className="hidden md:flex flex-col w-56 min-h-screen bg-white border-r border-stone-200 px-3 py-5 shrink-0">
         {/* Logo */}
         <div className="px-3 mb-8">
-          <span className="text-xl font-bold text-violet-600 tracking-tight">NOJOB</span>
+          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">
+            NOJOB
+          </span>
           <p className="text-xs text-stone-400 mt-0.5">job search, simplified</p>
         </div>
 
@@ -36,7 +38,7 @@ export default function Sidebar() {
                 href={href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   active
-                    ? 'bg-violet-50 text-violet-700'
+                    ? 'bg-gradient-to-r from-blue-50 to-violet-50 text-violet-700 font-semibold'
                     : 'text-stone-500 hover:bg-stone-100 hover:text-stone-700'
                 }`}
               >
