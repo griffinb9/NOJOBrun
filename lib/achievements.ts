@@ -27,17 +27,26 @@ export interface ComputedAchievement extends AchievementDef {
   toNextTier: number | null;
 }
 
-export const TIER_STYLE: Record<string, { badge: string; bar: string; accent: string }> = {
-  'Bronze 1': { badge: 'bg-amber-100 text-amber-700 border-amber-200', bar: 'bg-amber-400', accent: 'text-amber-700' },
-  'Bronze 2': { badge: 'bg-amber-100 text-amber-700 border-amber-200', bar: 'bg-amber-400', accent: 'text-amber-700' },
-  'Bronze 3': { badge: 'bg-amber-100 text-amber-700 border-amber-200', bar: 'bg-amber-500', accent: 'text-amber-700' },
-  'Silver 1': { badge: 'bg-slate-100 text-slate-600 border-slate-200', bar: 'bg-slate-400', accent: 'text-slate-600' },
-  'Silver 2': { badge: 'bg-slate-100 text-slate-600 border-slate-200', bar: 'bg-slate-400', accent: 'text-slate-600' },
-  'Silver 3': { badge: 'bg-slate-100 text-slate-600 border-slate-200', bar: 'bg-slate-500', accent: 'text-slate-600' },
-  'Gold 1':   { badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', bar: 'bg-yellow-400', accent: 'text-yellow-700' },
-  'Gold 2':   { badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', bar: 'bg-yellow-400', accent: 'text-yellow-700' },
-  'Gold 3':   { badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', bar: 'bg-yellow-500', accent: 'text-yellow-700' },
-  'Platinum': { badge: 'bg-violet-100 text-violet-700 border-violet-200', bar: 'bg-violet-500', accent: 'text-violet-700' },
+export interface TierStyle {
+  badge: string;
+  bar: string;
+  accent: string;
+  borderTop: string;
+  iconBg: string;
+  iconColor: string;
+}
+
+export const TIER_STYLE: Record<string, TierStyle> = {
+  'Bronze 1': { badge: 'bg-amber-100 text-amber-700 border-amber-200', bar: 'bg-amber-400', accent: 'text-amber-700', borderTop: 'border-t-amber-400', iconBg: 'bg-amber-100', iconColor: 'text-amber-600' },
+  'Bronze 2': { badge: 'bg-amber-100 text-amber-700 border-amber-200', bar: 'bg-amber-400', accent: 'text-amber-700', borderTop: 'border-t-amber-400', iconBg: 'bg-amber-100', iconColor: 'text-amber-600' },
+  'Bronze 3': { badge: 'bg-amber-100 text-amber-700 border-amber-200', bar: 'bg-amber-500', accent: 'text-amber-700', borderTop: 'border-t-amber-500', iconBg: 'bg-amber-100', iconColor: 'text-amber-700' },
+  'Silver 1': { badge: 'bg-slate-100 text-slate-600 border-slate-200', bar: 'bg-slate-400', accent: 'text-slate-600', borderTop: 'border-t-slate-400', iconBg: 'bg-slate-100', iconColor: 'text-slate-500' },
+  'Silver 2': { badge: 'bg-slate-100 text-slate-600 border-slate-200', bar: 'bg-slate-400', accent: 'text-slate-600', borderTop: 'border-t-slate-400', iconBg: 'bg-slate-100', iconColor: 'text-slate-500' },
+  'Silver 3': { badge: 'bg-slate-100 text-slate-600 border-slate-200', bar: 'bg-slate-500', accent: 'text-slate-600', borderTop: 'border-t-slate-500', iconBg: 'bg-slate-100', iconColor: 'text-slate-600' },
+  'Gold 1':   { badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', bar: 'bg-yellow-400', accent: 'text-yellow-700', borderTop: 'border-t-yellow-400', iconBg: 'bg-yellow-100', iconColor: 'text-yellow-600' },
+  'Gold 2':   { badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', bar: 'bg-yellow-400', accent: 'text-yellow-700', borderTop: 'border-t-yellow-400', iconBg: 'bg-yellow-100', iconColor: 'text-yellow-600' },
+  'Gold 3':   { badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', bar: 'bg-yellow-500', accent: 'text-yellow-700', borderTop: 'border-t-yellow-500', iconBg: 'bg-yellow-100', iconColor: 'text-yellow-700' },
+  'Platinum': { badge: 'bg-violet-100 text-violet-700 border-violet-200', bar: 'bg-violet-500', accent: 'text-violet-700', borderTop: 'border-t-violet-500', iconBg: 'bg-violet-100', iconColor: 'text-violet-600' },
 };
 
 const TIERS_JOBS_APPLIED: Tier[] = [

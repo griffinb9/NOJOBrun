@@ -8,10 +8,10 @@ interface Props {
   nextRankMin: number | null; // null = Offer Season (max rank)
   rankName: string;
   size?: number;
+  color?: string; // hex, defaults to blue-500
 }
 
 const STROKE_WIDTH = 11;
-const NORMAL_COLOR = '#3B82F6'; // blue-500
 const MAX_RANK_COLOR = '#10B981'; // emerald-500
 const BG_RING_COLOR = '#E7E5E4'; // stone-200
 
@@ -21,6 +21,7 @@ export default function CircularProgress({
   nextRankMin,
   rankName,
   size = 148,
+  color = '#3B82F6',
 }: Props) {
   const isMaxRank = nextRankMin === null;
   const radius = (size - STROKE_WIDTH) / 2;
@@ -46,7 +47,7 @@ export default function CircularProgress({
   }, [rawPercent]);
 
   const dashOffset = circumference - (animatedPercent / 100) * circumference;
-  const fgColor = isMaxRank ? MAX_RANK_COLOR : NORMAL_COLOR;
+  const fgColor = isMaxRank ? MAX_RANK_COLOR : color;
   const cx = size / 2;
   const cy = size / 2;
 

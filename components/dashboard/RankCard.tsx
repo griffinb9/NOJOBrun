@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Flame, TrendingUp, Target, BadgeCheck, Trophy } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { storage } from '@/lib/storage';
 import { getRankProgress } from '@/lib/points';
 import { UserProgress } from '@/lib/types';
@@ -9,6 +11,23 @@ import CircularProgress from '@/components/ui/CircularProgress';
 interface Props {
   refreshKey?: number;
 }
+
+// Hex colors matching the Tailwind bar colors in RANK_TIERS
+const RANK_RING_COLOR: Record<string, string> = {
+  'Underdog':      '#A8A29E', // stone-400
+  'On the Rise':   '#3B82F6', // blue-500
+  'Locked In':     '#8B5CF6', // violet-500
+  'Interview Pro': '#F59E0B', // amber-500
+  'Offer Season':  '#10B981', // emerald-500
+};
+
+const RANK_ICON: Record<string, LucideIcon> = {
+  'Underdog':      Flame,
+  'On the Rise':   TrendingUp,
+  'Locked In':     Target,
+  'Interview Pro': BadgeCheck,
+  'Offer Season':  Trophy,
+};
 
 export default function RankCard({ refreshKey }: Props) {
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -23,23 +42,38 @@ export default function RankCard({ refreshKey }: Props) {
   const weeklyPercent = Math.min(100, Math.round((progress.weeklyPoints / progress.weeklyGoal) * 100));
   const isMaxRank = !next;
 
+  const RankIcon = RANK_ICON[current.name] ?? Flame;
+  const ringColor = RANK_RING_COLOR[current.name] ?? '#3B82F6';
+
   return (
     <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden mb-10">
-      {/* Top accent strip */}
+      {/* Colored top strip */}
       <div className={`h-[3px] w-full ${current.barColor}`} />
 
       <div className="p-5 md:p-7">
         <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
 
-          {/* Circular progress ring */}
+          {/* Ring + rank icon stacked */}
           <div className="flex justify-center md:justify-start shrink-0">
-            <CircularProgress
-              currentPoints={progress.totalPoints}
-              currentRankMin={current.minPoints}
-              nextRankMin={next?.minPoints ?? null}
-              rankName={current.name}
-              size={148}
-            />
+            <div className="relative">
+              <CircularProgress
+                currentPoints={progress.totalPoints}
+                currentRankMin={current.minPoints}
+                nextRankMin={next?.minPoints ?? null}
+                rankName={current.name}
+                size={152}
+                color={ringColor}
+              />
+              {/* Rank icon badge — bottom-right of ring */}
+              <div className={`
+                absolute -bottom-1.5 -right-1.5
+                w-8 h-8 rounded-full border-2 border-white shadow-sm
+                flex items-center justify-center
+                ${current.badgeBg}
+              `}>
+                <RankIcon size={14} className={current.badgeText} />
+              </div>
+            </div>
           </div>
 
           {/* Rank identity */}
@@ -49,20 +83,24 @@ export default function RankCard({ refreshKey }: Props) {
             </span>
 
             <h2 className="text-2xl font-bold text-stone-900 leading-tight mt-1 tracking-tight">
-              {isMaxRank ? '🏆 ' : ''}{current.name}
+              {current.name}
             </h2>
             <p className="text-stone-400 text-sm mt-1.5 leading-relaxed">{current.description}</p>
 
-            <div className="mt-4">
+            <div className="mt-4 space-y-1">
+              <p className="text-sm text-stone-600">
+                You&apos;re currently{' '}
+                <span className={`font-semibold ${current.accentColor}`}>{current.name}</span>.
+              </p>
               {isMaxRank ? (
                 <p className="text-sm text-emerald-600 font-medium">
-                  You&apos;ve reached the top tier. Keep collecting wins.
+                  Top tier reached. Keep collecting wins.
                 </p>
               ) : (
                 <p className="text-sm text-stone-500">
                   <span className={`font-semibold ${current.accentColor}`}>{pointsToNext} pts</span>
                   {' '}to reach{' '}
-                  <span className="font-semibold text-stone-700">{next!.name}</span>
+                  <span className="font-semibold text-stone-700">{next!.name}</span>.
                 </p>
               )}
             </div>
@@ -91,7 +129,9 @@ export default function RankCard({ refreshKey }: Props) {
               <span className="text-3xl font-bold text-stone-900 leading-none tabular-nums">
                 {progress.weeklyPoints}
               </span>
-              <span className="text-stone-400 text-sm mb-0.5 leading-none">/ {progress.weeklyGoal} pts</span>
+              <span className="text-stone-400 text-sm mb-0.5 leading-none">
+                / {progress.weeklyGoal} pts
+              </span>
             </div>
 
             <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
@@ -117,8 +157,8 @@ export default function RankCard({ refreshKey }: Props) {
 }
 
 const QUICK_TIPS = [
-  { label: 'Apply', pts: 5 },
-  { label: 'Screen', pts: 15 },
-  { label: 'Interview', pts: 25 },
-  { label: 'Offer', pts: 100 },
+  { label: 'Apply',     pts: 5   },
+  { label: 'Screen',    pts: 15  },
+  { label: 'Interview', pts: 25  },
+  { label: 'Offer',     pts: 100 },
 ];
