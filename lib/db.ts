@@ -172,9 +172,10 @@ export const db = {
   },
 
   async saveProfile(profile: UserProfile): Promise<void> {
-    await supabase
+    const { error } = await supabase
       .from('user_profiles')
       .upsert(profileToRow(profile), { onConflict: 'id' });
+    if (error) throw new Error(error.message);
   },
 
   // ── Jobs ───────────────────────────────────────────────────────────────────
@@ -300,12 +301,15 @@ export const db = {
   async initProgress(): Promise<void> {
     const userId = await uid();
     const ts = now();
-    await supabase.from('user_progress').upsert({
+    // ignoreDuplicates: true → INSERT ... ON CONFLICT DO NOTHING
+    // Safe to call multiple times — never resets earned points
+    const { error } = await supabase.from('user_progress').upsert({
       user_id: userId,
       total_points: 0, current_rank: 'Underdog',
       weekly_points: 0, weekly_goal: 50,
       week_start_date: ts, last_activity_date: ts,
       created_at: ts, updated_at: ts,
-    }, { onConflict: 'user_id' });
+    }, { onConflict: 'user_id', ignoreDuplicates: true });
+    if (error) throw new Error(error.message);
   },
 };

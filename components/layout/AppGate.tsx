@@ -28,7 +28,7 @@ export default function AppGate({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <MobileNav />
-      {profile === null && <ProfileSetupModal onComplete={refreshProfile} />}
+      {!profile?.fullName?.trim() && <ProfileSetupModal onComplete={refreshProfile} />}
     </>
   );
 }

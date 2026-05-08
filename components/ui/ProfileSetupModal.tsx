@@ -7,7 +7,7 @@ import { UserProfile } from '@/lib/types';
 import { now } from '@/lib/utils';
 
 interface Props {
-  onComplete: () => void;
+  onComplete: () => Promise<void> | void;
 }
 
 export default function ProfileSetupModal({ onComplete }: Props) {
@@ -20,6 +20,7 @@ export default function ProfileSetupModal({ onComplete }: Props) {
     if (!fullName.trim()) { setError('Full name is required.'); return; }
     if (!user) return;
     setSaving(true);
+    setError('');
     const ts = now();
     const profile: UserProfile = {
       id: user.id,
@@ -30,9 +31,11 @@ export default function ProfileSetupModal({ onComplete }: Props) {
     };
     try {
       await db.saveProfile(profile);
-      onComplete();
-    } catch {
-      setError('Failed to save profile. Please try again.');
+      await db.initProgress();
+      await onComplete();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save profile. Please try again.');
+    } finally {
       setSaving(false);
     }
   }
