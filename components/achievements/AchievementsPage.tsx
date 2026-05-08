@@ -35,6 +35,27 @@ const RING_COLOR: Record<string, { ring: string; icon: string }> = {
   star_stories:      { ring: '#F43F5E', icon: '#E11D48' }, // rose
 };
 
+function toRoman(num: number): string {
+  const map = [
+    { value: 10, symbol: 'X' },
+    { value: 9,  symbol: 'IX' },
+    { value: 5,  symbol: 'V' },
+    { value: 4,  symbol: 'IV' },
+    { value: 1,  symbol: 'I' },
+  ];
+  let result = '';
+  for (const { value, symbol } of map) {
+    while (num >= value) { result += symbol; num -= value; }
+  }
+  return result;
+}
+
+function formatTierName(name: string): string {
+  const match = name.match(/^(.*)\s(\d+)$/);
+  if (!match) return name;
+  return `${match[1]} ${toRoman(parseInt(match[2], 10))}`;
+}
+
 function getMicrocopy(id: string, progressPercent: number, isPlatinum: boolean): string {
   if (isPlatinum) return 'Legend status. Fully unlocked.';
 
@@ -105,7 +126,7 @@ function AchievementCard({ achievement: a }: { achievement: ComputedAchievement 
 
   const nextLabel = isPlatinum
     ? 'Maximum tier reached'
-    : `${a.toNextTier} more ${a.toNextTier === 1 ? a.unit : `${a.unit}s`} to ${a.nextTier!.name}`;
+    : `${a.toNextTier} more ${a.toNextTier === 1 ? a.unit : `${a.unit}s`} to ${formatTierName(a.nextTier!.name)}`;
 
   return (
     <div
@@ -123,7 +144,7 @@ function AchievementCard({ achievement: a }: { achievement: ComputedAchievement 
       <span
         className={`absolute top-3.5 right-3.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${style.badge} whitespace-nowrap`}
       >
-        {a.currentTier.name}
+        {formatTierName(a.currentTier.name)}
       </span>
 
       {/* Circular progress ring with icon */}
