@@ -6,7 +6,7 @@ import type { LucideIcon } from 'lucide-react';
 import { storage } from '@/lib/storage';
 import { getRankProgress } from '@/lib/points';
 import { UserProgress } from '@/lib/types';
-import CircularProgress from '@/components/ui/CircularProgress';
+import SegmentedProgressRing from '@/components/ui/SegmentedProgressRing';
 
 interface Props {
   refreshKey?: number;
@@ -20,7 +20,6 @@ const RANK_ICON: Record<string, LucideIcon> = {
   'Offer Season':  Trophy,
 };
 
-// Card background: richer gradient per rank for depth
 const RANK_CARD_BG: Record<string, string> = {
   'Underdog':      'from-slate-50 to-slate-100/70',
   'On the Rise':   'from-blue-50/60 to-violet-50/50',
@@ -44,6 +43,15 @@ export default function RankCard({ refreshKey }: Props) {
   const weeklyPercent = Math.min(100, Math.round((progress.weeklyPoints / progress.weeklyGoal) * 100));
   const isMaxRank = !next;
 
+  // Compute progress percent for the segmented ring
+  const progressPercent = isMaxRank
+    ? 100
+    : next.minPoints === current.minPoints
+    ? 0
+    : Math.min(100, Math.max(0,
+        ((progress.totalPoints - current.minPoints) / (next.minPoints - current.minPoints)) * 100
+      ));
+
   const RankIcon = RANK_ICON[current.name] ?? Flame;
   const cardBg   = RANK_CARD_BG[current.name] ?? 'from-slate-50 to-slate-100/70';
 
@@ -60,17 +68,36 @@ export default function RankCard({ refreshKey }: Props) {
       <div className="p-5 md:p-7">
         <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
 
-          {/* Ring — hero element */}
+          {/* ── Segmented ring — hero element ── */}
           <div className="flex justify-center md:justify-start shrink-0">
             <div className="relative">
-              <CircularProgress
-                currentPoints={progress.totalPoints}
-                currentRankMin={current.minPoints}
-                nextRankMin={next?.minPoints ?? null}
-                rankName={current.name}
-                size={156}
-              />
-              {/* Rank icon badge overlaid on ring */}
+              <SegmentedProgressRing percent={progressPercent} size={164} segmentCount={32}>
+                {/* Center: rank name + points */}
+                <div className="flex flex-col items-center justify-center text-center select-none">
+                  <span className="text-[9px] font-semibold uppercase tracking-widest text-stone-400 leading-none mb-1.5 truncate max-w-[80px]">
+                    {current.name}
+                  </span>
+                  <span
+                    className="text-[26px] font-bold leading-none tabular-nums"
+                    style={{ color: isMaxRank ? '#10B981' : '#3B82F6' }}
+                  >
+                    {progress.totalPoints}
+                  </span>
+                  <span className="text-[11px] text-stone-400 leading-none mt-0.5">pts</span>
+                  {!isMaxRank && progressPercent > 0 && (
+                    <span className="text-[9px] text-stone-300 mt-1.5 leading-none tabular-nums">
+                      {Math.round(progressPercent)}%
+                    </span>
+                  )}
+                  {isMaxRank && (
+                    <span className="text-[9px] mt-1.5 leading-none font-semibold text-emerald-500">
+                      max rank
+                    </span>
+                  )}
+                </div>
+              </SegmentedProgressRing>
+
+              {/* Rank icon badge — bottom-right of ring */}
               <div
                 className={`
                   absolute -bottom-1.5 -right-1.5
@@ -84,7 +111,7 @@ export default function RankCard({ refreshKey }: Props) {
             </div>
           </div>
 
-          {/* Rank identity */}
+          {/* ── Rank identity ── */}
           <div className="flex-1 min-w-0">
             <span className={`text-[11px] font-semibold uppercase tracking-widest ${current.accentColor}`}>
               Personal Rank
@@ -110,7 +137,7 @@ export default function RankCard({ refreshKey }: Props) {
                     {pointsToNext} pts
                   </span>
                   {' '}to reach{' '}
-                  <span className="font-semibold text-stone-700">{next!.name}</span>.
+                  <span className="font-semibold text-stone-700">{next.name}</span>.
                 </p>
               )}
             </div>
@@ -131,7 +158,7 @@ export default function RankCard({ refreshKey }: Props) {
           {/* Divider */}
           <div className="hidden md:block w-px bg-stone-200/60 self-stretch" />
 
-          {/* Weekly momentum */}
+          {/* ── Weekly momentum ── */}
           <div className="md:w-40 shrink-0">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400 mb-3">
               This Week
