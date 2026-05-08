@@ -24,6 +24,7 @@ export interface Job {
   notes?: string;
   contactName?: string;
   contactEmail?: string;
+  sortOrder?: number;
   createdAt: string;
   updatedAt: string;
 }
