@@ -1,4 +1,6 @@
-import type { JobStatus } from './types';
+import type { Job, JobStatus } from './types';
+import { db } from './db';
+import { now } from './utils';
 
 export type FieldKey =
   | 'company'
@@ -109,4 +111,38 @@ export function parseImportDate(raw: string): string | null {
   if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
 
   return null;
+}
+
+/**
+ * After a batch import, re-sorts the entire "applied" column by application
+ * date descending (newest = sortOrder 0 = top of column).
+ *
+ * Falls back to createdAt when dateApplied is absent or unparseable.
+ * Invalid dates sort to the bottom (timestamp 0).
+ * Only saves rows whose sortOrder actually changed.
+ *
+ * This sets explicit sortOrder values so ensureSortOrders respects them on
+ * every subsequent load. Manual drag-and-drop overwrites sortOrder normally.
+ */
+export async function sortAppliedColumnAfterImport(): Promise<void> {
+  const allJobs = await db.getJobs();
+  const applied = allJobs.filter((j: Job) => j.status === 'applied');
+  if (applied.length === 0) return;
+
+  function effectiveTs(j: Job): number {
+    const ref = j.dateApplied ?? j.createdAt;
+    const t = new Date(ref).getTime();
+    return isNaN(t) ? 0 : t;
+  }
+
+  // Stable descending sort: newer date = lower index = top of column
+  const sorted = [...applied].sort((a, b) => effectiveTs(b) - effectiveTs(a));
+
+  const ts = now();
+  const toSave: Job[] = [];
+  sorted.forEach((j, i) => {
+    if (j.sortOrder !== i) toSave.push({ ...j, sortOrder: i, updatedAt: ts });
+  });
+
+  if (toSave.length > 0) await db.saveJobs(toSave);
 }

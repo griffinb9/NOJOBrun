@@ -14,6 +14,7 @@ import {
   autoDetectMapping,
   normalizeStatus,
   parseImportDate,
+  sortAppliedColumnAfterImport,
 } from '@/lib/importJobs';
 
 interface Props {
@@ -530,6 +531,10 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
 
       success++;
     }
+
+    // Re-sort the Applied column by dateApplied descending so the newest
+    // applications appear at the top. Only writes rows whose sortOrder changed.
+    if (success > 0) await sortAppliedColumnAfterImport();
 
     setImporting(false);
     setResult({ success, skipped });
