@@ -20,16 +20,15 @@ const RANK_ICON: Record<string, LucideIcon> = {
   'Offer Season':  Trophy,
 };
 
-// Subtle card bg tint per rank — barely perceptible, adds depth
+// Card background: richer gradient per rank for depth
 const RANK_CARD_BG: Record<string, string> = {
-  'Underdog':      'from-white to-slate-50',
-  'On the Rise':   'from-white to-blue-50/40',
-  'Locked In':     'from-white to-violet-50/40',
-  'Interview Pro': 'from-white to-amber-50/40',
-  'Offer Season':  'from-white to-emerald-50/40',
+  'Underdog':      'from-slate-50 to-slate-100/70',
+  'On the Rise':   'from-blue-50/60 to-violet-50/50',
+  'Locked In':     'from-violet-50/70 to-blue-50/50',
+  'Interview Pro': 'from-amber-50/60 to-orange-50/40',
+  'Offer Season':  'from-emerald-50/70 to-teal-50/40',
 };
 
-// Weekly bar: gradient for active, emerald for goal hit
 const WEEKLY_BAR = 'bg-gradient-to-r from-blue-400 to-violet-500';
 
 export default function RankCard({ refreshKey }: Props) {
@@ -46,12 +45,14 @@ export default function RankCard({ refreshKey }: Props) {
   const isMaxRank = !next;
 
   const RankIcon = RANK_ICON[current.name] ?? Flame;
-  const cardBg = RANK_CARD_BG[current.name] ?? 'from-white to-slate-50';
+  const cardBg   = RANK_CARD_BG[current.name] ?? 'from-slate-50 to-slate-100/70';
 
   return (
     <div
-      className={`bg-gradient-to-br ${cardBg} rounded-2xl border border-violet-100/60 overflow-hidden mb-10`}
-      style={{ boxShadow: '0 4px 32px rgba(124,58,237,0.10), 0 1px 4px rgba(0,0,0,0.06)' }}
+      className={`bg-gradient-to-br ${cardBg} rounded-2xl border border-white/80 overflow-hidden mb-10`}
+      style={{
+        boxShadow: '0 4px 32px rgba(124,58,237,0.12), 0 1px 6px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.8)',
+      }}
     >
       {/* Gradient top strip */}
       <div className="h-[3px] w-full bg-gradient-to-r from-blue-500 to-violet-600" />
@@ -59,7 +60,7 @@ export default function RankCard({ refreshKey }: Props) {
       <div className="p-5 md:p-7">
         <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
 
-          {/* Ring + rank icon badge */}
+          {/* Ring — hero element */}
           <div className="flex justify-center md:justify-start shrink-0">
             <div className="relative">
               <CircularProgress
@@ -67,15 +68,18 @@ export default function RankCard({ refreshKey }: Props) {
                 currentRankMin={current.minPoints}
                 nextRankMin={next?.minPoints ?? null}
                 rankName={current.name}
-                size={152}
+                size={156}
               />
-              <div className={`
-                absolute -bottom-1.5 -right-1.5
-                w-8 h-8 rounded-full border-2 border-white shadow-sm
-                flex items-center justify-center
-                ${current.badgeBg}
-              `}>
-                <RankIcon size={14} className={current.badgeText} />
+              {/* Rank icon badge overlaid on ring */}
+              <div
+                className={`
+                  absolute -bottom-1.5 -right-1.5
+                  w-9 h-9 rounded-full border-2 border-white shadow-md
+                  flex items-center justify-center
+                  ${current.badgeBg}
+                `}
+              >
+                <RankIcon size={15} className={current.badgeText} />
               </div>
             </div>
           </div>
@@ -125,7 +129,7 @@ export default function RankCard({ refreshKey }: Props) {
           </div>
 
           {/* Divider */}
-          <div className="hidden md:block w-px bg-stone-100 self-stretch" />
+          <div className="hidden md:block w-px bg-stone-200/60 self-stretch" />
 
           {/* Weekly momentum */}
           <div className="md:w-40 shrink-0">
@@ -142,7 +146,7 @@ export default function RankCard({ refreshKey }: Props) {
               </span>
             </div>
 
-            <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-white/70 rounded-full overflow-hidden border border-stone-100">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
                   weeklyPercent >= 100 ? 'bg-emerald-400' : WEEKLY_BAR

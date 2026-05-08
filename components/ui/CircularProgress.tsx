@@ -5,31 +5,31 @@ import { useEffect, useState, useId } from 'react';
 interface Props {
   currentPoints: number;
   currentRankMin: number;
-  nextRankMin: number | null; // null = max rank
+  nextRankMin: number | null;
   rankName: string;
   size?: number;
 }
 
-const STROKE_WIDTH = 11;
-const MAX_RANK_COLOR = '#10B981'; // emerald-500
-const BG_RING_COLOR  = '#E7E5E4'; // stone-200
-const GRAD_START     = '#3B82F6'; // blue-500
-const GRAD_END       = '#7C3AED'; // violet-600
+const STROKE_WIDTH  = 14;
+const MAX_RANK_COLOR = '#10B981';
+const BG_RING_COLOR  = '#E5E7EB';
+const GRAD_START     = '#3B82F6';
+const GRAD_END       = '#7C3AED';
 
 export default function CircularProgress({
   currentPoints,
   currentRankMin,
   nextRankMin,
   rankName,
-  size = 148,
+  size = 152,
 }: Props) {
-  // Stable unique IDs — safe with React 18+ useId
   const uid        = useId().replace(/[^a-zA-Z0-9]/g, '');
   const gradientId = `rg${uid}`;
   const glowId     = `gw${uid}`;
+  const progGlowId = `pg${uid}`;
 
-  const isMaxRank  = nextRankMin === null;
-  const radius     = (size - STROKE_WIDTH) / 2;
+  const isMaxRank = nextRankMin === null;
+  const radius    = (size - STROKE_WIDTH) / 2;
   const circumference = 2 * Math.PI * radius;
 
   const rawPercent = isMaxRank
@@ -44,9 +44,9 @@ export default function CircularProgress({
     return () => cancelAnimationFrame(id);
   }, [rawPercent]);
 
-  const dashOffset    = circumference - (animatedPercent / 100) * circumference;
-  const strokeColor   = isMaxRank ? MAX_RANK_COLOR : `url(#${gradientId})`;
-  const centerColor   = isMaxRank ? MAX_RANK_COLOR : GRAD_START;
+  const dashOffset  = circumference - (animatedPercent / 100) * circumference;
+  const strokeColor = isMaxRank ? MAX_RANK_COLOR : `url(#${gradientId})`;
+  const centerColor = isMaxRank ? MAX_RANK_COLOR : GRAD_START;
   const cx = size / 2;
   const cy = size / 2;
 
@@ -59,13 +59,21 @@ export default function CircularProgress({
         style={{ transform: 'rotate(-90deg)' }}
       >
         <defs>
-          {/* Blue→violet gradient for normal ranks */}
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%"   stopColor={GRAD_START} />
             <stop offset="100%" stopColor={GRAD_END}   />
           </linearGradient>
 
-          {/* Glow filter for max rank */}
+          {/* Glow around progress arc */}
+          <filter id={progGlowId} x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          {/* Extra glow for max rank */}
           {isMaxRank && (
             <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="3" result="blur" />
@@ -94,12 +102,12 @@ export default function CircularProgress({
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={dashOffset}
-          filter={isMaxRank ? `url(#${glowId})` : undefined}
-          style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }}
+          filter={`url(#${isMaxRank ? glowId : progGlowId})`}
+          style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1)' }}
         />
       </svg>
 
-      {/* Center label */}
+      {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none">
         <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-400 leading-none mb-1.5 px-2 truncate max-w-full">
           {rankName}
