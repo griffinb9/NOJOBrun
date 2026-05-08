@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, BookOpen, Trophy, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Kanban, BookOpen, Trophy, Settings, LogOut, Loader2 } from 'lucide-react';
 import SettingsModal from '@/components/ui/SettingsModal';
 import { useAuth } from '@/lib/auth';
 import { useState } from 'react';
@@ -18,6 +18,12 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { signOut } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    await signOut();
+  }
 
   return (
     <>
@@ -62,11 +68,12 @@ export default function Sidebar() {
 
         {/* Sign Out */}
         <button
-          onClick={signOut}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors w-full"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors w-full disabled:opacity-50"
         >
-          <LogOut size={16} />
-          Sign Out
+          {signingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+          {signingOut ? 'Signing out…' : 'Sign Out'}
         </button>
       </aside>
 
