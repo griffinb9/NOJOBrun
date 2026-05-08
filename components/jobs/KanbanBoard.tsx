@@ -8,6 +8,7 @@ import {
   DragStartEvent,
   PointerSensor,
   closestCenter,
+  pointerWithin,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -53,6 +54,14 @@ function ensureSortOrders(rawJobs: Job[]): { jobs: Job[]; changed: boolean } {
   }
 
   return { jobs: result, changed };
+}
+
+// pointerWithin detects the droppable the cursor is physically inside (smallest rect
+// wins, so a card beats its column). Fall back to closestCenter when the pointer is
+// outside all droppables (e.g. slightly outside the board edge).
+function detectCollision(args: Parameters<typeof pointerWithin>[0]) {
+  const within = pointerWithin(args);
+  return within.length > 0 ? within : closestCenter(args);
 }
 
 export default function KanbanBoard() {
@@ -206,7 +215,7 @@ export default function KanbanBoard() {
       <div className="flex-1 overflow-x-auto">
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={detectCollision}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
