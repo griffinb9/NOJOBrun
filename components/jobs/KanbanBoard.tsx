@@ -12,7 +12,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Plus } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
 import { storage } from '@/lib/storage';
 import { now } from '@/lib/utils';
@@ -21,6 +21,7 @@ import KanbanColumn from './KanbanColumn';
 import JobCard from './JobCard';
 import JobFormModal from './JobFormModal';
 import JobDetailModal from './JobDetailModal';
+import ImportJobsModal from './ImportJobsModal';
 
 /**
  * Ensures every job has a clean 0-based sortOrder within its status group.
@@ -60,6 +61,7 @@ export default function KanbanBoard() {
   const [addOpen, setAddOpen] = useState(false);
   const [addStatus, setAddStatus] = useState<JobStatus>('applied');
   const [detailJob, setDetailJob] = useState<Job | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const load = useCallback(() => {
     const raw = storage.getJobs();
@@ -182,13 +184,22 @@ export default function KanbanBoard() {
               : `${jobs.length} application${jobs.length !== 1 ? 's' : ''} tracked`}
           </p>
         </div>
-        <button
-          onClick={() => openAdd('applied')}
-          className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 active:scale-[0.97] transition-all shadow-sm"
-        >
-          <Plus size={15} strokeWidth={2.5} />
-          Add Job
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setImportOpen(true)}
+            className="flex items-center gap-2 border border-stone-200 text-stone-600 px-3.5 py-2 rounded-xl text-sm font-medium hover:bg-stone-50 hover:border-stone-300 active:scale-[0.97] transition-all"
+          >
+            <Upload size={14} strokeWidth={2} />
+            Import
+          </button>
+          <button
+            onClick={() => openAdd('applied')}
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 active:scale-[0.97] transition-all shadow-sm"
+          >
+            <Plus size={15} strokeWidth={2.5} />
+            Add Job
+          </button>
+        </div>
       </div>
 
       {/* Board */}
@@ -221,6 +232,12 @@ export default function KanbanBoard() {
         open={addOpen}
         onClose={() => { setAddOpen(false); load(); }}
         initialStatus={addStatus}
+      />
+
+      <ImportJobsModal
+        open={importOpen}
+        onClose={() => { setImportOpen(false); load(); }}
+        onImported={load}
       />
 
       {detailJob && (
