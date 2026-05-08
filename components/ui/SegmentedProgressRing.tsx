@@ -10,10 +10,9 @@ interface Props {
   children?: ReactNode;
 }
 
-const INACTIVE   = '#DDE1E7';
-const MAX_COLOR  = '#10B981'; // emerald — max rank
+const MAX_COLOR = '#10B981';
 
-// Interpolate blue (#3B82F6) → violet (#7C3AED) → teal (#14B8A6)
+// Blue (#3B82F6) → Violet (#7C3AED) → Teal (#14B8A6)
 function segmentColor(t: number, isMax: boolean): string {
   if (isMax) return MAX_COLOR;
   if (t <= 0.5) {
@@ -37,11 +36,13 @@ export default function SegmentedProgressRing({
   const uid    = useId().replace(/[^a-zA-Z0-9]/g, '');
   const glowSm = `sgs${uid}`;
   const glowLg = `sgl${uid}`;
+  const pulseKf = `spr_p${uid}`;
+  const tipCls  = `spr_t${uid}`;
 
-  const cx      = size / 2;
-  const cy      = size / 2;
-  const R       = size * 0.40;  // ring radius — center of dots
-  const dotR    = size * 0.034; // dot radius
+  const cx   = size / 2;
+  const cy   = size / 2;
+  const R    = size * 0.40;
+  const dotR = size * 0.034;
 
   const isMax      = percent >= 100;
   const clamped    = Math.min(100, Math.max(0, percent));
@@ -58,9 +59,8 @@ export default function SegmentedProgressRing({
 
     function step(now: number) {
       if (startTime === null) startTime = now;
-      const elapsed = now - startTime;
-      const t       = Math.min(1, elapsed / 900);
-      const eased   = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const t     = Math.min(1, (now - startTime) / 900);
+      const eased = 1 - Math.pow(1 - t, 3);
       setDisplayCount(Math.round(eased * target));
       if (t < 1) { animId = requestAnimationFrame(step); }
     }
@@ -75,7 +75,7 @@ export default function SegmentedProgressRing({
     const y      = cy + R * Math.sin(angle);
     const active = i < displayCount;
     const isTip  = active && i === displayCount - 1;
-    const color  = active ? segmentColor(i / (segmentCount - 1), isMax) : INACTIVE;
+    const color  = active ? segmentColor(i / (segmentCount - 1), isMax) : 'rgba(148,163,184,0.30)';
     return { x, y, active, isTip, color };
   });
 
@@ -84,10 +84,6 @@ export default function SegmentedProgressRing({
       className="relative inline-flex items-center justify-center shrink-0"
       style={{ width: size, height: size }}
     >
-      {/*
-        overflow="visible" so glow on edge dots isn't clipped by the SVG viewport.
-        The parent div provides layout bounds.
-      */}
       <svg
         width={size}
         height={size}
@@ -96,6 +92,19 @@ export default function SegmentedProgressRing({
         style={{ position: 'absolute', inset: 0 }}
       >
         <defs>
+          {/* Scoped keyframe + tip class — uid prevents conflicts */}
+          <style>{`
+            @keyframes ${pulseKf} {
+              0%,100% { opacity: 1; }
+              50%      { opacity: 0.55; }
+            }
+            .${tipCls} {
+              transform-box: fill-box;
+              transform-origin: center;
+              animation: ${pulseKf} 1.6s ease-in-out infinite;
+            }
+          `}</style>
+
           {/* Normal active segment glow */}
           <filter id={glowSm} x="-200%" y="-200%" width="500%" height="500%">
             <feGaussianBlur stdDeviation="2.8" result="blur" />
@@ -105,9 +114,9 @@ export default function SegmentedProgressRing({
             </feMerge>
           </filter>
 
-          {/* Stronger glow for tip (leading edge) */}
-          <filter id={glowLg} x="-300%" y="-300%" width="700%" height="700%">
-            <feGaussianBlur stdDeviation="5" result="blur" />
+          {/* Stronger glow for tip */}
+          <filter id={glowLg} x="-350%" y="-350%" width="800%" height="800%">
+            <feGaussianBlur stdDeviation="5.5" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -120,15 +129,19 @@ export default function SegmentedProgressRing({
             key={i}
             cx={x}
             cy={y}
-            r={isTip ? dotR * 1.3 : dotR}
+            r={isTip ? dotR * 1.55 : dotR}
             fill={color}
+            className={isTip ? tipCls : undefined}
             filter={active ? `url(#${isTip ? glowLg : glowSm})` : undefined}
           />
         ))}
       </svg>
 
-      {/* Center slot — rank info passed from parent */}
-      <div className="relative z-10 flex items-center justify-center" style={{ width: R * 2 - dotR * 2 - 8 }}>
+      {/* Center slot */}
+      <div
+        className="relative z-10 flex items-center justify-center"
+        style={{ width: R * 2 - dotR * 2 - 10 }}
+      >
         {children}
       </div>
     </div>
