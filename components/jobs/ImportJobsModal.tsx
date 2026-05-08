@@ -499,8 +499,8 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
       const rawStatus = mapping.status ? (row[mapping.status] ?? '') : '';
       const status: JobStatus = rawStatus ? normalizeStatus(rawStatus) : 'applied';
 
-      const rawDate = mapping.interview_date ? (row[mapping.interview_date] ?? '') : '';
-      const parsedDate = parseImportDate(rawDate);
+      const rawDateApplied = mapping.date_applied ? (row[mapping.date_applied] ?? '') : '';
+      const parsedDateApplied = parseImportDate(rawDateApplied);
 
       const job: Job = {
         id: newId(),
@@ -509,8 +509,8 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
         location:       mapping.location        ? (row[mapping.location]        ?? '').trim() || undefined : undefined,
         salary:         mapping.salary           ? (row[mapping.salary]          ?? '').trim() || undefined : undefined,
         status,
-        dateApplied: ts.split('T')[0],
-        interviewDates: parsedDate ? [parsedDate] : [],
+        dateApplied: parsedDateApplied ?? ts.split('T')[0],
+        interviewDates: [],
         jobUrl:         mapping.job_url          ? (row[mapping.job_url]         ?? '').trim() || undefined : undefined,
         jobDescription: mapping.job_description  ? (row[mapping.job_description] ?? '').trim() || undefined : undefined,
         notes:          mapping.notes            ? (row[mapping.notes]           ?? '').trim() || undefined : undefined,
