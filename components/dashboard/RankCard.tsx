@@ -24,12 +24,12 @@ export default function RankCard({ refreshKey }: Props) {
   const isMaxRank = !next;
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden mb-8">
+    <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden mb-10">
       {/* Top accent strip */}
-      <div className={`h-1 w-full ${current.barColor}`} />
+      <div className={`h-[3px] w-full ${current.barColor}`} />
 
-      <div className="p-5 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
+      <div className="p-5 md:p-7">
+        <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
 
           {/* Circular progress ring */}
           <div className="flex justify-center md:justify-start shrink-0">
@@ -42,16 +42,16 @@ export default function RankCard({ refreshKey }: Props) {
             />
           </div>
 
-          {/* Rank identity + next rank copy */}
+          {/* Rank identity */}
           <div className="flex-1 min-w-0">
-            <span className={`text-xs font-semibold uppercase tracking-widest ${current.accentColor}`}>
+            <span className={`text-[11px] font-semibold uppercase tracking-widest ${current.accentColor}`}>
               Personal Rank
             </span>
 
-            <h2 className="text-2xl font-bold text-stone-800 leading-tight mt-0.5">
+            <h2 className="text-2xl font-bold text-stone-900 leading-tight mt-1 tracking-tight">
               {isMaxRank ? '🏆 ' : ''}{current.name}
             </h2>
-            <p className="text-stone-400 text-sm mt-1">{current.description}</p>
+            <p className="text-stone-400 text-sm mt-1.5 leading-relaxed">{current.description}</p>
 
             <div className="mt-4">
               {isMaxRank ? (
@@ -61,17 +61,17 @@ export default function RankCard({ refreshKey }: Props) {
               ) : (
                 <p className="text-sm text-stone-500">
                   <span className={`font-semibold ${current.accentColor}`}>{pointsToNext} pts</span>
-                  {' '}away from{' '}
-                  <span className="font-medium text-stone-700">{next!.name}</span>
+                  {' '}to reach{' '}
+                  <span className="font-semibold text-stone-700">{next!.name}</span>
                 </p>
               )}
             </div>
 
             {/* Quick point guide */}
-            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5">
+            <div className="mt-4 flex items-center gap-5 flex-wrap">
               {QUICK_TIPS.map(({ label, pts }) => (
-                <div key={label} className="flex items-center gap-1.5">
-                  <span className={`text-xs font-semibold ${current.accentColor}`}>+{pts}</span>
+                <div key={label} className="flex items-center gap-1">
+                  <span className={`text-xs font-bold ${current.accentColor}`}>+{pts}</span>
                   <span className="text-xs text-stone-400">{label}</span>
                 </div>
               ))}
@@ -82,21 +82,21 @@ export default function RankCard({ refreshKey }: Props) {
           <div className="hidden md:block w-px bg-stone-100 self-stretch" />
 
           {/* Weekly momentum */}
-          <div className="md:w-44 shrink-0">
-            <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-3">
-              Weekly Momentum
+          <div className="md:w-40 shrink-0">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400 mb-3">
+              This Week
             </p>
 
-            <div className="flex items-end gap-1.5 mb-2">
-              <span className="text-3xl font-bold text-stone-800 leading-none">
+            <div className="flex items-end gap-1.5 mb-2.5">
+              <span className="text-3xl font-bold text-stone-900 leading-none tabular-nums">
                 {progress.weeklyPoints}
               </span>
-              <span className="text-stone-400 text-sm mb-0.5">/ {progress.weeklyGoal} pts</span>
+              <span className="text-stone-400 text-sm mb-0.5 leading-none">/ {progress.weeklyGoal} pts</span>
             </div>
 
             <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${
+                className={`h-full rounded-full transition-all duration-700 ${
                   weeklyPercent >= 100 ? 'bg-emerald-400' : current.barColor
                 }`}
                 style={{ width: `${weeklyPercent}%` }}
@@ -105,8 +105,8 @@ export default function RankCard({ refreshKey }: Props) {
 
             <p className="text-xs text-stone-400 mt-2">
               {weeklyPercent >= 100
-                ? '✓ Weekly goal hit!'
-                : `${progress.weeklyGoal - progress.weeklyPoints} pts to weekly goal`}
+                ? '✓ Goal hit!'
+                : `${progress.weeklyGoal - progress.weeklyPoints} pts to go`}
             </p>
           </div>
 
@@ -118,8 +118,7 @@ export default function RankCard({ refreshKey }: Props) {
 
 const QUICK_TIPS = [
   { label: 'Apply', pts: 5 },
-  { label: 'Recruiter Screen', pts: 15 },
+  { label: 'Screen', pts: 15 },
   { label: 'Interview', pts: 25 },
-  { label: 'Prep', pts: 10 },
-  { label: 'Notes', pts: 3 },
+  { label: 'Offer', pts: 100 },
 ];
