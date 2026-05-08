@@ -4,6 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { MapPin, DollarSign, Calendar, Pencil } from 'lucide-react';
 import { Job, STATUS_BORDER } from '@/lib/types';
+import { applicationAgeDays } from '@/lib/autoGhost';
 
 interface Props {
   job: Job;
@@ -50,6 +51,7 @@ export default function JobCard({ job, onSelect, isDragging }: Props) {
   const cardBg       = STATUS_CARD_BG[job.status] ?? 'bg-white';
   const isGhosted    = job.status === 'ghosted';
   const isSettled    = job.status === 'rejected' || isGhosted;
+  const ghostedAge   = isGhosted ? applicationAgeDays(job) : 0;
 
   return (
     <div
@@ -115,6 +117,11 @@ export default function JobCard({ job, onSelect, isDragging }: Props) {
           )}
           {appliedStr && !intLabel && (
             <div className="text-[10px] text-stone-300 mt-0.5">{appliedStr}</div>
+          )}
+          {isGhosted && ghostedAge > 0 && (
+            <div className="text-[9px] text-stone-300 mt-0.5 tabular-nums">
+              No response · {ghostedAge}d
+            </div>
           )}
         </div>
       )}

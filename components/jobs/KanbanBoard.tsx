@@ -19,6 +19,7 @@ import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
+import { autoGhostStaleApplications } from '@/lib/autoGhost';
 import KanbanColumn from './KanbanColumn';
 import JobCard from './JobCard';
 import JobFormModal from './JobFormModal';
@@ -83,7 +84,8 @@ export default function KanbanBoard() {
 
   const load = useCallback(async () => {
     const raw = await db.getJobs();
-    const { jobs: normalized, changed } = ensureSortOrders(raw);
+    const afterGhost = await autoGhostStaleApplications(raw);
+    const { jobs: normalized, changed } = ensureSortOrders(afterGhost);
     if (changed) await db.saveJobs(normalized);
     setJobs(normalized);
   }, []);

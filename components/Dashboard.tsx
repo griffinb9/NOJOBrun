@@ -10,6 +10,7 @@ import JobFormModal from './jobs/JobFormModal';
 import RankCard from './dashboard/RankCard';
 import { formatDate, daysSince, getDashboardTitle } from '@/lib/utils';
 import { getRank } from '@/lib/points';
+import { autoGhostStaleApplications } from '@/lib/autoGhost';
 
 const GREETINGS = [
   "Let's get after it",
@@ -29,7 +30,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function loadData() {
-      const [j, p] = await Promise.all([db.getJobs(), db.getUserProgress()]);
+      const [rawJobs, p] = await Promise.all([db.getJobs(), db.getUserProgress()]);
+      const j = await autoGhostStaleApplications(rawJobs);
       setJobs(j);
       setProgress(p);
     }
