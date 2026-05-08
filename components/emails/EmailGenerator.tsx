@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Copy, Check, Loader2, Send } from 'lucide-react';
 import { Job } from '@/lib/types';
 import { storage } from '@/lib/storage';
+import { useAuth } from '@/lib/auth';
 import { awardPoints } from '@/lib/points';
 
 type EmailType = 'thank-you' | 'check-in';
@@ -14,6 +15,7 @@ const EMAIL_OPTIONS: { type: EmailType; label: string; description: string }[] =
 ];
 
 export default function EmailGenerator({ job }: { job: Job }) {
+  const { profile } = useAuth();
   const [selected, setSelected] = useState<EmailType | null>(null);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +31,7 @@ export default function EmailGenerator({ job }: { job: Job }) {
     setLoading(true);
 
     const apiKey = storage.getSettings().anthropicApiKey;
-    const resumeText = storage.getUserProfile()?.resumeText;
+    const resumeText = profile?.resumeText;
 
     try {
       const res = await fetch('/api/ai/emails', {

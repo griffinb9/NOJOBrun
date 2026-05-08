@@ -5,6 +5,8 @@ import { ArrowLeft, RefreshCw, Copy, Check, Loader2, FileText } from 'lucide-rea
 import Link from 'next/link';
 import { Job } from '@/lib/types';
 import { storage } from '@/lib/storage';
+import { db } from '@/lib/db';
+import { useAuth } from '@/lib/auth';
 import { awardPoints } from '@/lib/points';
 
 interface Props {
@@ -28,24 +30,26 @@ const SECTIONS = [
 
 export default function PrepPage({ paramsPromise }: Props) {
   const { jobId } = use(paramsPromise);
+  const { profile } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [sections, setSections] = useState<Section[]>(
     SECTIONS.map((s) => ({ ...s, content: '', loading: false }))
   );
   const [copied, setCopied] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [resumeText, setResumeText] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    const found = storage.getJob(jobId);
-    if (!found) { setNotFound(true); return; }
-    setJob(found);
-    setResumeText(storage.getUserProfile()?.resumeText);
+    db.getJob(jobId).then((found) => {
+      if (!found) { setNotFound(true); return; }
+      setJob(found);
+    });
   }, [jobId]);
+
+  const resumeText = profile?.resumeText;
 
   async function generate(key: string) {
     if (!job) return;
-    const stories = storage.getStories();
+    const stories = await db.getStories();
     const apiKey = storage.getSettings().anthropicApiKey;
 
     setSections((prev) =>

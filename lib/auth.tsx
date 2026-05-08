@@ -23,6 +23,44 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// ── Stale-state cleanup ───────────────────────────────────────────────────────
+
+/**
+ * Remove localStorage keys written by the pre-Supabase app.
+ * All user data now lives in Supabase; these keys are dead weight and could
+ * previously trigger the old localStorage-based onboarding modal.
+ * nojob_settings is intentionally preserved — it holds the Anthropic API key.
+ */
+const STALE_KEYS = [
+  'nojob_user_profile',
+  'nojob_user_progress',
+  'nojob_point_events',
+  // Intentionally NOT clearing nojob_jobs / nojob_stories:
+  // PrepPage and EmailGenerator still read from them until they are fully migrated.
+];
+
+function clearStaleLocalStorage(): void {
+  if (typeof window === 'undefined') return;
+  STALE_KEYS.forEach((k) => localStorage.removeItem(k));
+}
+
+/**
+ * Try to read the old pre-Supabase nojob_user_profile from localStorage.
+ * Returns null if nothing useful is found.
+ */
+function readLegacyProfile(): { fullName?: string; email?: string } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('nojob_user_profile');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && (parsed.fullName || parsed.email)) return parsed;
+  } catch {
+    // malformed JSON — ignore
+  }
+  return null;
+}
+
 // ── Provider ─────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -32,32 +70,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   /**
-   * Fetch the profile row for a user. If no row exists but the user has a
-   * full_name in auth metadata (stored during signUp), auto-create the row so
-   * we never show the ProfileSetupModal after a normal signup.
+   * Fetch the profile row for a user.
+   *
+   * Auto-create sources (tried in priority order when no DB row exists):
+   *   1. auth.user_metadata.full_name — set during signUp via options.data
+   *   2. legacy nojob_user_profile in localStorage — migration path for users
+   *      who signed up before the Supabase migration
+   *
+   * After a successful auto-create the localStorage entry is removed so the
+   * next load goes straight to Supabase.
    */
   const loadProfile = useCallback(async (u: User) => {
     try {
       let p = await db.getProfile();
 
       if (!p) {
-        // Attempt to auto-create from metadata set during signUp
-        const fullName = (u.user_metadata?.full_name as string | undefined)?.trim();
+        // ── Resolve fullName from known sources ──────────────────────────
+        const metaName = (u.user_metadata?.full_name as string | undefined)?.trim();
+        const legacy   = readLegacyProfile();
+        const fullName = metaName || legacy?.fullName?.trim();
+        const email    = legacy?.email || u.email || '';
+
         if (fullName) {
           const ts = now();
-          const newProfile: UserProfile = {
-            id: u.id,
-            fullName,
-            email: u.email ?? '',
-            createdAt: ts,
-            updatedAt: ts,
-          };
+          const newProfile: UserProfile = { id: u.id, fullName, email, createdAt: ts, updatedAt: ts };
           try {
             await db.saveProfile(newProfile);
             await db.initProgress();
+            // Migration complete — remove the legacy key
+            if (typeof window !== 'undefined') localStorage.removeItem('nojob_user_profile');
             p = newProfile;
           } catch {
-            // Save failed — profile stays null, ProfileSetupModal will appear as fallback
+            // Save failed — ProfileSetupModal will appear as a fallback
           }
         }
       }
@@ -70,6 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Hydrate on mount, then listen for auth changes
   useEffect(() => {
+    // Clear stale pre-Supabase localStorage keys on every app startup
+    clearStaleLocalStorage();
+
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
@@ -108,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
       options: {
-        // Store fullName in auth metadata so loadProfile can auto-create the
+        // Persist fullName in auth metadata so loadProfile can auto-create the
         // profile row even after an email-confirmation redirect
         data: { full_name: fullName.trim() },
       },
@@ -133,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await db.initProgress();
         setProfile(newProfile);
       } catch {
-        // Non-fatal — loadProfile (triggered by onAuthStateChange) will create it
+        // Non-fatal — loadProfile (triggered by onAuthStateChange) will retry
       }
     }
 
