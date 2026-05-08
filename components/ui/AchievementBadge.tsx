@@ -13,7 +13,7 @@ interface Props {
 }
 
 const STROKE_WIDTH  = 13;
-const RING_TRACK    = '#1e1e2e';
+const RING_TRACK    = '#E5E7EB';
 
 export default function AchievementBadge({
   percent,
