@@ -10,8 +10,8 @@ import SettingsModal from '@/components/ui/SettingsModal';
 const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/tracker', label: 'Tracker', icon: Kanban },
-  { href: '/story-bank', label: 'Stories', icon: BookOpen },
   { href: '/achievements', label: 'Wins', icon: Trophy },
+  { href: '/story-bank', label: 'STAR', icon: BookOpen },
 ];
 
 export default function MobileNav() {

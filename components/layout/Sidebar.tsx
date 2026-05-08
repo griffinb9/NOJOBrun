@@ -10,8 +10,8 @@ import { useState } from 'react';
 const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/tracker', label: 'Job Tracker', icon: Kanban },
-  { href: '/story-bank', label: 'Story Bank', icon: BookOpen },
   { href: '/achievements', label: 'Achievements', icon: Trophy },
+  { href: '/story-bank', label: 'STAR Formatter', icon: BookOpen },
 ];
 
 export default function Sidebar() {

@@ -52,7 +52,7 @@ export default function StoryBank() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">Story Bank</h1>
+          <h1 className="text-2xl font-bold text-stone-800">STAR Formatter</h1>
           <p className="text-stone-400 text-sm mt-0.5">Your STAR stories for interview prep</p>
         </div>
         <button
