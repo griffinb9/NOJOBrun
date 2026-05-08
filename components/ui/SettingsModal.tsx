@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import { storage } from '@/lib/storage';
 import { isValidEmail, now } from '@/lib/utils';
 
@@ -11,11 +11,20 @@ interface Props {
   onProfileSaved?: () => void;
 }
 
+const RESUME_MAX = 15000;
+
+function stripHtml(text: string): string {
+  return text.replace(/<[^>]*>/g, '');
+}
+
 export default function SettingsModal({ open, onClose, onProfileSaved }: Props) {
   const [apiKey, setApiKey] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [profileErrors, setProfileErrors] = useState<{ fullName?: string; email?: string }>({});
+  const [resumeText, setResumeText] = useState('');
+  const [resumeUpdatedAt, setResumeUpdatedAt] = useState<string | undefined>(undefined);
+  const [resumeSaved, setResumeSaved] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -25,7 +34,10 @@ export default function SettingsModal({ open, onClose, onProfileSaved }: Props) 
       const profile = storage.getUserProfile();
       setFullName(profile?.fullName ?? '');
       setEmail(profile?.email ?? '');
+      setResumeText(profile?.resumeText ?? '');
+      setResumeUpdatedAt(profile?.resumeUpdatedAt);
       setProfileErrors({});
+      setResumeSaved(false);
     }
   }, [open]);
 
@@ -47,14 +59,19 @@ export default function SettingsModal({ open, onClose, onProfileSaved }: Props) 
     if (nameTrimmed) {
       const existing = storage.getUserProfile();
       const ts = now();
+      const sanitized = stripHtml(resumeText).slice(0, RESUME_MAX);
+      const resumeChanged = sanitized !== (existing?.resumeText ?? '');
+
       storage.saveUserProfile({
         id: existing?.id ?? ts,
         fullName: nameTrimmed,
         email: emailTrimmed.toLowerCase(),
+        resumeText: sanitized || undefined,
+        resumeUpdatedAt: resumeChanged && sanitized ? ts : existing?.resumeUpdatedAt,
         createdAt: existing?.createdAt ?? ts,
         updatedAt: ts,
       });
-      // Notify any listener (e.g. Dashboard) that the profile changed
+
       window.dispatchEvent(new Event('nojob:profile-updated'));
       onProfileSaved?.();
     }
@@ -62,12 +79,31 @@ export default function SettingsModal({ open, onClose, onProfileSaved }: Props) 
     onClose();
   }
 
+  function saveResume() {
+    const existing = storage.getUserProfile();
+    if (!existing) return;
+    const ts = now();
+    const sanitized = stripHtml(resumeText).slice(0, RESUME_MAX);
+    storage.saveUserProfile({
+      ...existing,
+      resumeText: sanitized || undefined,
+      resumeUpdatedAt: sanitized ? ts : existing.resumeUpdatedAt,
+      updatedAt: ts,
+    });
+    setResumeUpdatedAt(sanitized ? ts : existing.resumeUpdatedAt);
+    setResumeSaved(true);
+    setTimeout(() => setResumeSaved(false), 3000);
+  }
+
   if (!open) return null;
+
+  const charsLeft = RESUME_MAX - resumeText.length;
+  const previewSnippet = resumeText.trim().slice(0, 120);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-stone-800">Settings</h2>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-600">
@@ -111,6 +147,60 @@ export default function SettingsModal({ open, onClose, onProfileSaved }: Props) 
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-stone-100" />
+
+          {/* Resume section */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-1">Resume</p>
+            <p className="text-xs text-stone-400 mb-3">
+              Used to personalize interview prep and email drafts. Paste plain text only.
+            </p>
+
+            <textarea
+              value={resumeText}
+              onChange={(e) => setResumeText(e.target.value.slice(0, RESUME_MAX))}
+              rows={8}
+              placeholder="Paste your resume here…"
+              className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 resize-none"
+            />
+
+            <div className="flex items-center justify-between mt-1.5">
+              <div className="flex items-center gap-3">
+                {resumeUpdatedAt && (
+                  <span className="text-xs text-stone-400">
+                    Last updated {new Date(resumeUpdatedAt).toLocaleDateString()}
+                  </span>
+                )}
+                {resumeSaved && (
+                  <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                    <Check size={11} /> Resume saved
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-xs ${charsLeft < 500 ? 'text-amber-500' : 'text-stone-300'}`}>
+                  {resumeText.length.toLocaleString()} / {RESUME_MAX.toLocaleString()}
+                </span>
+                <button
+                  type="button"
+                  onClick={saveResume}
+                  disabled={!storage.getUserProfile()}
+                  className="px-3 py-1.5 text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg font-medium disabled:opacity-40"
+                >
+                  Save Resume
+                </button>
+              </div>
+            </div>
+
+            {previewSnippet && !resumeSaved && resumeText.trim() === (storage.getUserProfile()?.resumeText ?? '').trim() && (
+              <div className="mt-2 px-3 py-2 bg-stone-50 rounded-lg border border-stone-100">
+                <p className="text-xs text-stone-400 font-medium mb-0.5">Saved resume preview</p>
+                <p className="text-xs text-stone-500 line-clamp-2">{previewSnippet}{resumeText.trim().length > 120 ? '…' : ''}</p>
+              </div>
+            )}
           </div>
 
           {/* Divider */}

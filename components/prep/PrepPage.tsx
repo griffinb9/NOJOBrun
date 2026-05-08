@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
-import { ArrowLeft, RefreshCw, Copy, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Copy, Check, Loader2, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Job } from '@/lib/types';
 import { storage } from '@/lib/storage';
@@ -34,11 +34,13 @@ export default function PrepPage({ paramsPromise }: Props) {
   );
   const [copied, setCopied] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [resumeText, setResumeText] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const found = storage.getJob(jobId);
     if (!found) { setNotFound(true); return; }
     setJob(found);
+    setResumeText(storage.getUserProfile()?.resumeText);
   }, [jobId]);
 
   async function generate(key: string) {
@@ -54,7 +56,7 @@ export default function PrepPage({ paramsPromise }: Props) {
       const res = await fetch('/api/ai/prep', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, job, stories, apiKey }),
+        body: JSON.stringify({ key, job, stories, apiKey, resumeText }),
       });
 
       if (!res.ok) {
@@ -143,6 +145,18 @@ export default function PrepPage({ paramsPromise }: Props) {
           </button>
         </div>
       </div>
+
+      {/* Resume nudge */}
+      {!resumeText && (
+        <div className="flex items-center gap-3 px-4 py-3 mb-2 bg-amber-50 border border-amber-200 rounded-xl">
+          <FileText size={15} className="text-amber-500 shrink-0" />
+          <p className="text-sm text-amber-700 flex-1">
+            Add your resume in{' '}
+            <span className="font-medium">Settings</span>{' '}
+            for more personalized answers.
+          </p>
+        </div>
+      )}
 
       {/* Sections */}
       <div className="space-y-4">

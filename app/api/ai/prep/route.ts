@@ -2,28 +2,36 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { Story } from '@/lib/types';
 
-function buildPrompt(key: string, job: { company: string; role: string; jobDescription?: string }, stories: Story[]): string {
+function buildPrompt(
+  key: string,
+  job: { company: string; role: string; jobDescription?: string },
+  stories: Story[],
+  resumeText?: string,
+): string {
   const jd = job.jobDescription ? `\nJob Description:\n${job.jobDescription}` : '';
   const storyBlock = stories.length > 0
     ? `\nUser's STAR Stories:\n${stories.map((s, i) => `${i + 1}. ${s.title}\n  Situation: ${s.situation}\n  Task: ${s.task}\n  Action: ${s.action}\n  Result: ${s.result}`).join('\n\n')}`
     : '';
+  const resumeBlock = resumeText?.trim()
+    ? `\nCandidate's Resume:\n${resumeText.trim()}`
+    : '';
 
-  const context = `Company: ${job.company}\nRole: ${job.role}${jd}${storyBlock}`;
+  const context = `Company: ${job.company}\nRole: ${job.role}${jd}${resumeBlock}${storyBlock}`;
 
   const prompts: Record<string, string> = {
-    'tmay': `You are an expert interview coach. Write a compelling "Tell Me About Yourself" answer for a candidate interviewing for the following role. Make it 2–3 paragraphs, conversational, and tailored to the role. End with why they're excited about this specific opportunity.
+    'tmay': `You are an expert interview coach. Write a compelling "Tell Me About Yourself" answer for a candidate interviewing for the following role. Draw directly from the candidate's resume and STAR stories where available. Make it 2–3 paragraphs, conversational, and tailored to the role. End with why they're excited about this specific opportunity.
 
 ${context}
 
 Write the answer as if the candidate is speaking. Be natural and engaging.`,
 
-    'why-company': `You are an expert interview coach. Write 3 specific, well-researched talking points for "Why do you want to work at [Company]?" for the role below. Be specific about the company's mission, culture, products, or industry position. Avoid generic answers.
+    'why-company': `You are an expert interview coach. Write 3 specific, well-researched talking points for "Why do you want to work at [Company]?" for the role below. Where possible, connect the candidate's background from their resume to the company's mission or work. Avoid generic answers.
 
 ${context}
 
 Format as 3 numbered talking points with brief explanations.`,
 
-    'why-role': `You are an expert interview coach. Write a compelling answer for "Why do you want this role?" that bridges the candidate's background (from their stories if available) to this specific position.
+    'why-role': `You are an expert interview coach. Write a compelling answer for "Why do you want this role?" that bridges the candidate's background (from their resume and stories if available) to this specific position.
 
 ${context}
 
@@ -35,25 +43,25 @@ ${context}
 
 Format with clear category headers and numbered questions.`,
 
-    'star': `You are an expert interview coach. Using the candidate's STAR stories below, write 3–4 polished STAR-format answers for common behavioral interview questions relevant to this role. For each, state the question, then write the full STAR answer.
+    'star': `You are an expert interview coach. Using the candidate's resume and STAR stories below, write 3–4 polished STAR-format answers for common behavioral interview questions relevant to this role. For each, state the question, then write the full STAR answer.
 
 ${context}
 
-If no stories are provided, write example STAR answers using placeholders the candidate can fill in. Format clearly with the question bolded and STAR labels.`,
+If no stories or resume details are provided, write example STAR answers using placeholders the candidate can fill in. Format clearly with the question bolded and STAR labels.`,
   };
 
   return prompts[key] ?? `Generate interview prep content for: ${key}`;
 }
 
 export async function POST(req: NextRequest) {
-  const { key, job, stories = [], apiKey } = await req.json();
+  const { key, job, stories = [], apiKey, resumeText } = await req.json();
 
   if (!apiKey) {
     return Response.json({ error: 'No API key set. Go to Settings and add your Anthropic API key.' }, { status: 400 });
   }
 
   const client = new Anthropic({ apiKey });
-  const prompt = buildPrompt(key, job, stories);
+  const prompt = buildPrompt(key, job, stories, resumeText);
 
   const stream = await client.messages.stream({
     model: 'claude-sonnet-4-6',

@@ -4,6 +4,8 @@ export interface UserProfile {
   id: string;
   fullName: string;
   email: string;
+  resumeText?: string;
+  resumeUpdatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

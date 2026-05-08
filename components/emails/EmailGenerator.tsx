@@ -29,12 +29,13 @@ export default function EmailGenerator({ job }: { job: Job }) {
     setLoading(true);
 
     const apiKey = storage.getSettings().anthropicApiKey;
+    const resumeText = storage.getUserProfile()?.resumeText;
 
     try {
       const res = await fetch('/api/ai/emails', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, job, apiKey }),
+        body: JSON.stringify({ type, job, apiKey, resumeText }),
       });
 
       if (!res.ok) {
