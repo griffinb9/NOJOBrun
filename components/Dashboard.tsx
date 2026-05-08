@@ -2,19 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Flame } from 'lucide-react';
 import { storage } from '@/lib/storage';
 import { Job, UserProfile, STATUS_COLORS, STATUS_BORDER, STATUS_LABELS } from '@/lib/types';
 import JobFormModal from './jobs/JobFormModal';
 import RankCard from './dashboard/RankCard';
 import ProfileSetupModal from './ui/ProfileSetupModal';
 import { formatDate, daysSince, getDashboardTitle } from '@/lib/utils';
+import { getRank } from '@/lib/points';
+
+const GREETINGS = [
+  "Let's get after it",
+  "You're building momentum",
+  "Stay locked in",
+  "Big week ahead",
+  "Every app counts",
+];
 
 export default function Dashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [rankKey, setRankKey] = useState(0);
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
+  const [greeting, setGreeting] = useState(GREETINGS[0]);
 
   useEffect(() => {
     setJobs(storage.getJobs());
@@ -28,6 +38,10 @@ export default function Dashboard() {
     }
     window.addEventListener('nojob:profile-updated', onProfileUpdated);
     return () => window.removeEventListener('nojob:profile-updated', onProfileUpdated);
+  }, []);
+
+  useEffect(() => {
+    setGreeting(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
   }, []);
 
   function load() { setJobs(storage.getJobs()); }
@@ -44,6 +58,8 @@ export default function Dashboard() {
   if (profile === null) return <ProfileSetupModal onComplete={handleProfileComplete} />;
 
   const title = getDashboardTitle(profile.fullName);
+  const progress = storage.getUserProgress();
+  const currentRank = getRank(progress.totalPoints);
 
   const total = jobs.length;
   const interviews = jobs.filter((j) => j.status === 'interviewing' || j.status === 'recruiter_screen').length;
@@ -105,16 +121,42 @@ export default function Dashboard() {
     <div className="p-6 md:p-10 max-w-5xl mx-auto w-full">
 
       {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 mb-10">
-        <div>
-          <h1 className="text-3xl font-bold text-stone-900 tracking-tight leading-tight">
-            {title}
-          </h1>
+      <div className="relative flex items-start justify-between gap-4 mb-10">
+        {/* Background glow blob */}
+        <div className="absolute -inset-x-4 -inset-y-3 rounded-2xl bg-gradient-to-br from-blue-500/[0.05] to-violet-500/[0.07] blur-2xl pointer-events-none" />
+
+        <div className="relative">
+          {/* Greeting eyebrow */}
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-violet-400/80 mb-2">
+            {greeting}
+          </p>
+
+          {/* Title with icon */}
+          <div className="flex items-center gap-2.5 group cursor-default">
+            <Flame
+              size={24}
+              strokeWidth={2}
+              className="text-violet-500 shrink-0 transition-all duration-200 group-hover:scale-110 group-hover:text-violet-400"
+            />
+            <h1 className="text-[2rem] font-extrabold tracking-tight leading-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent transition-opacity duration-200 group-hover:opacity-80">
+              {title}
+            </h1>
+          </div>
+
+          {/* Rank + pts secondary line */}
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className="text-xs font-semibold text-slate-500">{currentRank.name}</span>
+            <span className="text-slate-300 text-xs">·</span>
+            <span className="text-xs font-semibold text-violet-500">{progress.totalPoints} pts</span>
+          </div>
+
+          {/* Contextual subtitle */}
           <p className="text-stone-400 text-sm mt-2 leading-relaxed">{subtitle}</p>
         </div>
+
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 active:scale-[0.97] transition-all shrink-0 shadow-sm"
+          className="relative flex items-center gap-2 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 active:scale-[0.97] transition-all shrink-0 shadow-sm"
         >
           <Plus size={15} strokeWidth={2.5} />
           Add Job
