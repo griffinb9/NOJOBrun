@@ -96,9 +96,11 @@ function AchievementCard({ achievement: a }: { achievement: ComputedAchievement 
   return (
     <div
       className={`
-        group relative bg-white rounded-2xl border border-stone-100 shadow-sm
+        group relative bg-white rounded-2xl border border-stone-100
         flex flex-col overflow-hidden
-        hover:shadow-md hover:-translate-y-0.5 transition-all duration-200
+        shadow-[0_2px_8px_rgba(0,0,0,0.06)]
+        hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)] hover:-translate-y-0.5
+        transition-all duration-200
         border-t-2 ${style.borderTop}
       `}
     >

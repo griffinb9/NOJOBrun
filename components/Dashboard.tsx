@@ -78,22 +78,26 @@ export default function Dashboard() {
     {
       label: 'Applications',
       value: total,
-      valueClass: 'text-stone-800',
+      valueClass: 'text-blue-600',
+      dot: 'bg-blue-500',
     },
     {
       label: 'Response Rate',
       value: `${responseRate}%`,
-      valueClass: responseRate > 0 ? 'text-violet-600' : 'text-stone-800',
+      valueClass: 'text-violet-600',
+      dot: 'bg-violet-500',
     },
     {
       label: 'Upcoming Interviews',
       value: upcomingInterviews,
-      valueClass: upcomingInterviews > 0 ? 'text-emerald-600' : 'text-stone-800',
+      valueClass: upcomingInterviews > 0 ? 'text-emerald-600' : 'text-slate-400',
+      dot: 'bg-emerald-500',
     },
     {
       label: 'Days Since Last App',
       value: daysSinceLast !== null ? daysSinceLast : '—',
-      valueClass: isStale ? 'text-amber-500' : 'text-stone-800',
+      valueClass: isStale ? 'text-amber-500' : daysSinceLast !== null ? 'text-slate-600' : 'text-slate-400',
+      dot: isStale ? 'bg-amber-400' : 'bg-slate-300',
     },
   ];
 
@@ -121,9 +125,10 @@ export default function Dashboard() {
       <RankCard refreshKey={rankKey} />
 
       {/* ── Stats row ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-stone-100 rounded-2xl overflow-hidden shadow-sm mb-10">
-        {stats.map(({ label, value, valueClass }) => (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-100 rounded-2xl overflow-hidden shadow-sm mb-10">
+        {stats.map(({ label, value, valueClass, dot }) => (
           <div key={label} className="bg-white px-5 py-5">
+            <div className={`w-1.5 h-1.5 rounded-full mb-3 ${dot}`} />
             <div className={`text-2xl font-bold tabular-nums leading-none ${valueClass}`}>
               {value}
             </div>
@@ -161,7 +166,7 @@ export default function Dashboard() {
             {recent.map((job) => (
               <div
                 key={job.id}
-                className={`flex items-center gap-4 px-6 py-4 border-b border-stone-50 last:border-0 border-l-4 ${STATUS_BORDER[job.status]}`}
+                className={`flex items-center gap-4 px-6 py-4 border-b border-stone-100 last:border-0 hover:bg-slate-50/60 transition-colors border-l-4 ${STATUS_BORDER[job.status]}`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-stone-800 text-sm truncate">

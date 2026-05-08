@@ -19,7 +19,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="hidden md:flex flex-col w-56 min-h-screen bg-white border-r border-stone-200 px-3 py-5 shrink-0">
+      <aside className="hidden md:flex flex-col w-56 min-h-screen bg-slate-50 border-r border-slate-200 px-3 py-5 shrink-0">
         {/* Logo */}
         <div className="px-3 mb-8">
           <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">

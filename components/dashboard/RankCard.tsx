@@ -49,7 +49,10 @@ export default function RankCard({ refreshKey }: Props) {
   const cardBg = RANK_CARD_BG[current.name] ?? 'from-white to-slate-50';
 
   return (
-    <div className={`bg-gradient-to-br ${cardBg} rounded-2xl border border-stone-100 shadow-sm overflow-hidden mb-10`}>
+    <div
+      className={`bg-gradient-to-br ${cardBg} rounded-2xl border border-violet-100/60 overflow-hidden mb-10`}
+      style={{ boxShadow: '0 4px 32px rgba(124,58,237,0.10), 0 1px 4px rgba(0,0,0,0.06)' }}
+    >
       {/* Gradient top strip */}
       <div className="h-[3px] w-full bg-gradient-to-r from-blue-500 to-violet-600" />
 
