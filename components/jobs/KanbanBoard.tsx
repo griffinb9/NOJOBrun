@@ -70,16 +70,18 @@ export default function KanbanBoard() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100 bg-white">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white">
         <div>
-          <h1 className="text-xl font-bold text-stone-800">Job Tracker</h1>
-          <p className="text-stone-400 text-xs mt-0.5">{jobs.length} application{jobs.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-xl font-bold text-stone-900 tracking-tight">Job Tracker</h1>
+          <p className="text-stone-400 text-xs mt-0.5">
+            {jobs.length === 0 ? 'No applications yet' : `${jobs.length} application${jobs.length !== 1 ? 's' : ''} tracked`}
+          </p>
         </div>
         <button
           onClick={() => openAdd('applied')}
-          className="flex items-center gap-2 bg-violet-600 text-white px-3 py-2 rounded-xl text-sm font-medium hover:bg-violet-700"
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 active:scale-[0.97] transition-all shadow-sm"
         >
-          <Plus size={15} />
+          <Plus size={15} strokeWidth={2.5} />
           Add Job
         </button>
       </div>
