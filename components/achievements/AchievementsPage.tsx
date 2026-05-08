@@ -11,9 +11,8 @@ import {
   ComputedAchievement,
   TIER_STYLE,
 } from '@/lib/achievements';
-import AchievementProgressRing from '@/components/ui/AchievementProgressRing';
+import AchievementBadge from '@/components/ui/AchievementBadge';
 
-// Icon per achievement category
 const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
   jobs_applied:      Send,
   recruiter_screens: PhoneCall,
@@ -24,15 +23,15 @@ const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
   star_stories:      BookOpen,
 };
 
-// Category-specific ring + icon colors (hex)
-const RING_COLOR: Record<string, { ring: string; icon: string }> = {
-  jobs_applied:      { ring: '#3B82F6', icon: '#2563EB' }, // blue
-  recruiter_screens: { ring: '#06B6D4', icon: '#0891B2' }, // cyan
-  interviews:        { ring: '#7C3AED', icon: '#6D28D9' }, // violet
-  offers:            { ring: '#10B981', icon: '#059669' }, // emerald
-  follow_ups:        { ring: '#F97316', icon: '#EA580C' }, // orange
-  prep_kits:         { ring: '#F59E0B', icon: '#D97706' }, // amber
-  star_stories:      { ring: '#F43F5E', icon: '#E11D48' }, // rose
+// color = ring/glow accent, light = gradient endpoint on ring
+const BADGE_COLORS: Record<string, { color: string; light: string }> = {
+  jobs_applied:      { color: '#3B82F6', light: '#60A5FA' }, // blue
+  recruiter_screens: { color: '#8B5CF6', light: '#A78BFA' }, // purple
+  interviews:        { color: '#F43F5E', light: '#FB7185' }, // red-pink
+  offers:            { color: '#10B981', light: '#34D399' }, // emerald
+  follow_ups:        { color: '#F59E0B', light: '#FCD34D' }, // amber
+  prep_kits:         { color: '#7C3AED', light: '#A78BFA' }, // violet
+  star_stories:      { color: '#14B8A6', light: '#2DD4BF' }, // teal
 };
 
 function toRoman(num: number): string {
@@ -118,11 +117,11 @@ export default function AchievementsPage() {
 }
 
 function AchievementCard({ achievement: a }: { achievement: ComputedAchievement }) {
-  const style     = TIER_STYLE[a.currentTier.name];
+  const style      = TIER_STYLE[a.currentTier.name];
   const isPlatinum = !a.nextTier;
-  const Icon      = ACHIEVEMENT_ICONS[a.id] ?? Trophy;
-  const colors    = RING_COLOR[a.id] ?? { ring: '#6366F1', icon: '#4F46E5' };
-  const microcopy = getMicrocopy(a.id, a.progressPercent, isPlatinum);
+  const Icon       = ACHIEVEMENT_ICONS[a.id] ?? Trophy;
+  const palette    = BADGE_COLORS[a.id] ?? { color: '#6366F1', light: '#818CF8' };
+  const microcopy  = getMicrocopy(a.id, a.progressPercent, isPlatinum);
 
   const nextLabel = isPlatinum
     ? 'Maximum tier reached'
@@ -131,13 +130,13 @@ function AchievementCard({ achievement: a }: { achievement: ComputedAchievement 
   return (
     <div
       className={`
-        group relative bg-white rounded-2xl border border-stone-100
-        flex flex-col items-center text-center overflow-hidden
-        shadow-[0_2px_8px_rgba(0,0,0,0.06)]
-        hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)] hover:-translate-y-0.5
-        transition-all duration-200
-        border-t-2 ${style.borderTop}
-        px-5 pt-7 pb-5 gap-3
+        group relative flex flex-col items-center text-center
+        bg-white rounded-2xl border border-stone-100 overflow-hidden
+        shadow-[0_2px_12px_rgba(0,0,0,0.07)]
+        hover:shadow-[0_12px_32px_rgba(0,0,0,0.13)] hover:-translate-y-1
+        transition-all duration-250
+        border-t-[3px] ${style.borderTop}
+        px-5 pt-8 pb-6 gap-0
       `}
     >
       {/* Tier pill — top right */}
@@ -147,43 +146,41 @@ function AchievementCard({ achievement: a }: { achievement: ComputedAchievement 
         {formatTierName(a.currentTier.name)}
       </span>
 
-      {/* Circular progress ring with icon */}
-      <AchievementProgressRing
+      {/* Badge — focal centrepiece */}
+      <AchievementBadge
         percent={a.progressPercent}
-        color={colors.ring}
-        iconColor={colors.icon}
+        color={palette.color}
+        lightColor={palette.light}
         isPlatinum={isPlatinum}
         Icon={Icon}
-        size={100}
+        size={124}
       />
 
-      {/* Name */}
-      <h3 className="font-semibold text-stone-800 text-sm leading-tight mt-1">{a.name}</h3>
+      {/* Achievement name */}
+      <h3 className="font-bold text-stone-800 text-sm leading-snug mt-4 px-2">{a.name}</h3>
 
       {/* Microcopy */}
-      <p className="text-xs text-stone-400 leading-snug -mt-1">{microcopy}</p>
+      <p className="text-xs text-stone-400 leading-snug mt-1 px-2">{microcopy}</p>
 
       {/* Count */}
-      <div className="flex items-baseline gap-1.5 mt-0.5">
+      <div className="flex items-baseline gap-1.5 mt-4">
         <span className="text-4xl font-bold text-stone-900 tabular-nums leading-none">{a.count}</span>
-        <span className="text-stone-400 text-sm">
+        <span className="text-stone-400 text-sm leading-none">
           {a.count === 1 ? a.unit : `${a.unit}s`}
         </span>
       </div>
 
-      {/* Next tier text */}
-      <p
-        className={`text-xs font-medium mt-auto pt-1 ${
-          isPlatinum ? 'text-violet-600' : 'text-stone-400'
-        }`}
-      >
-        {nextLabel}
-        {!isPlatinum && (
-          <span className={`ml-1.5 font-semibold ${style.accent}`}>
-            {a.progressPercent}%
-          </span>
-        )}
-      </p>
+      {/* Progress / next tier */}
+      <div className="mt-auto pt-4 w-full border-t border-stone-50 mt-4">
+        <p className={`text-xs font-medium ${isPlatinum ? 'text-violet-600' : 'text-stone-400'}`}>
+          {nextLabel}
+          {!isPlatinum && (
+            <span className={`ml-1.5 font-bold ${style.accent}`}>
+              {a.progressPercent}%
+            </span>
+          )}
+        </p>
+      </div>
     </div>
   );
 }
