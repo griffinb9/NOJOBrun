@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/db';
 import { newId, now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
 
@@ -32,6 +32,7 @@ const empty: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> = {
 export default function JobFormModal({ open, onClose, job, initialStatus }: Props) {
   const [form, setForm] = useState({ ...empty });
   const [interviewInput, setInterviewInput] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -71,41 +72,40 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
     setForm((f) => ({ ...f, interviewDates: f.interviewDates?.filter((x) => x !== d) }));
   }
 
-  function save() {
+  async function save() {
     if (!form.company.trim() || !form.role.trim()) return;
+    setSaving(true);
     const ts = now();
 
-    if (job) {
-      // Editing an existing job
-      storage.updateJob({ ...job, ...form, updatedAt: ts });
+    try {
+      if (job) {
+        await db.updateJob({ ...job, ...form, updatedAt: ts });
 
-      // Award points for status changes
-      if (form.status !== job.status) {
-        if (form.status === 'recruiter_screen') awardPoints('status_recruiter_screen', job.id, `Recruiter screen earned for ${form.company}`);
-        else if (form.status === 'interviewing') awardPoints('status_interviewing', job.id);
-        else if (form.status === 'offer') awardPoints('status_offer', job.id);
-        else if (form.status === 'rejected') awardPoints('status_rejected', job.id);
+        if (form.status !== job.status) {
+          if (form.status === 'recruiter_screen') await awardPoints('status_recruiter_screen', job.id, `Recruiter screen earned for ${form.company}`);
+          else if (form.status === 'interviewing') await awardPoints('status_interviewing', job.id);
+          else if (form.status === 'offer') await awardPoints('status_offer', job.id);
+          else if (form.status === 'rejected') await awardPoints('status_rejected', job.id);
+        }
+
+        if (form.notes?.trim()) await awardPoints('notes_added', job.id);
+      } else {
+        const id = newId();
+        await db.addJob({ ...form, id, createdAt: ts, updatedAt: ts });
+        await awardPoints('application_added', id);
+
+        if (form.status === 'recruiter_screen') await awardPoints('status_recruiter_screen', id, `Recruiter screen earned for ${form.company}`);
+        else if (form.status === 'interviewing') await awardPoints('status_interviewing', id);
+        else if (form.status === 'offer') await awardPoints('status_offer', id);
+        else if (form.status === 'rejected') await awardPoints('status_rejected', id);
+
+        if (form.notes?.trim()) await awardPoints('notes_added', id);
       }
 
-      // Award notes_added once when notes go from empty to present
-      if (form.notes?.trim()) awardPoints('notes_added', job.id);
-    } else {
-      // Creating a new job
-      const id = newId();
-      storage.addJob({ ...form, id, createdAt: ts, updatedAt: ts });
-      awardPoints('application_added', id);
-
-      // Award for status if created directly into a non-applied status
-      if (form.status === 'recruiter_screen') awardPoints('status_recruiter_screen', id, `Recruiter screen earned for ${form.company}`);
-      else if (form.status === 'interviewing') awardPoints('status_interviewing', id);
-      else if (form.status === 'offer') awardPoints('status_offer', id);
-      else if (form.status === 'rejected') awardPoints('status_rejected', id);
-
-      // Award notes_added if notes present at creation
-      if (form.notes?.trim()) awardPoints('notes_added', id);
+      onClose();
+    } finally {
+      setSaving(false);
     }
-
-    onClose();
   }
 
   if (!open) return null;
@@ -219,10 +219,10 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
           </button>
           <button
             onClick={save}
-            disabled={!form.company.trim() || !form.role.trim()}
+            disabled={!form.company.trim() || !form.role.trim() || saving}
             className="px-4 py-2 text-sm bg-violet-600 text-white rounded-xl hover:bg-violet-700 font-medium disabled:opacity-40"
           >
-            {job ? 'Save Changes' : 'Add Job'}
+            {saving ? 'Saving…' : job ? 'Save Changes' : 'Add Job'}
           </button>
         </div>
       </div>

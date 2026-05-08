@@ -5,7 +5,7 @@ import {
   Send, PhoneCall, Mic, Trophy, MailCheck, Sparkles, BookOpen,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/db';
 import {
   computeAllAchievements,
   ComputedAchievement,
@@ -77,13 +77,15 @@ export default function AchievementsPage() {
   const [achievements, setAchievements] = useState<ComputedAchievement[]>([]);
 
   useEffect(() => {
-    setAchievements(
-      computeAllAchievements({
-        jobs: storage.getJobs(),
-        pointEvents: storage.getPointEvents(),
-        stories: storage.getStories(),
-      })
-    );
+    async function load() {
+      const [jobs, pointEvents, stories] = await Promise.all([
+        db.getJobs(),
+        db.getPointEvents(),
+        db.getStories(),
+      ]);
+      setAchievements(computeAllAchievements({ jobs, pointEvents, stories }));
+    }
+    load();
   }, []);
 
   const earned = achievements.filter((a) => a.count > 0).length;

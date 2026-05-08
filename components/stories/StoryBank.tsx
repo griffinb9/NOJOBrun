@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import { Story } from '@/lib/types';
+import { db } from '@/lib/db';
 import { storage } from '@/lib/storage';
 import StoryCard from './StoryCard';
 import StoryFormModal from './StoryFormModal';
@@ -15,7 +16,10 @@ export default function StoryBank() {
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState('');
 
-  function load() { setStories(storage.getStories()); }
+  async function load() {
+    const s = await db.getStories();
+    setStories(s);
+  }
   useEffect(() => { load(); }, []);
 
   async function extractFromResume() {
@@ -32,10 +36,10 @@ export default function StoryBank() {
       const data = await res.json();
       if (!res.ok) { setExtractError(data.error ?? 'Failed to extract'); return; }
       for (const s of data.stories as Story[]) {
-        storage.addStory(s);
+        await db.addStory(s);
       }
       setResumeText('');
-      load();
+      await load();
     } catch {
       setExtractError('Network error. Check your API key in Settings.');
     } finally {
@@ -100,7 +104,7 @@ export default function StoryBank() {
               key={story.id}
               story={story}
               onEdit={setEditStory}
-              onDelete={() => { storage.deleteStory(story.id); load(); }}
+              onDelete={async () => { await db.deleteStory(story.id); load(); }}
             />
           ))}
         </div>

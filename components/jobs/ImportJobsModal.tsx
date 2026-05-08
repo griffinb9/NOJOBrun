@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Upload, ChevronRight, CheckCircle2, AlertTriangle, FileSpreadsheet, SkipForward } from 'lucide-react';
 import { Job, JobStatus } from '@/lib/types';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/db';
 import { newId, now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
 import {
@@ -366,11 +366,19 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [mapping, setMapping] = useState<Mapping>(emptyMapping());
   const [skipIndices, setSkipIndices] = useState<Set<number>>(new Set());
+  const [existingJobs, setExistingJobs] = useState<Job[]>([]);
   const [result, setResult] = useState<{ success: number; skipped: number } | null>(null);
   const [parsing, setParsing] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (step === 3) {
+      db.getJobs().then(setExistingJobs);
+    }
+  }, [step]);
 
   function reset() {
     setStep(1);
@@ -378,6 +386,7 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
     setRows([]);
     setMapping(emptyMapping());
     setSkipIndices(new Set());
+    setExistingJobs([]);
     setResult(null);
     setError(null);
     setFileName('');
@@ -424,7 +433,6 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
   }
 
   // ── Step 3 derived state ───────────────────────────────────────────────────
-  const existingJobs = step === 3 ? storage.getJobs() : [];
 
   const invalidIndices = new Set(
     rows
@@ -474,17 +482,19 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
     });
   }
 
-  function doImport() {
+  async function doImport() {
+    setImporting(true);
     const ts = now();
     let success = 0;
     let skipped = 0;
 
-    rows.forEach((row, i) => {
-      if (invalidIndices.has(i) || skipIndices.has(i)) { skipped++; return; }
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (invalidIndices.has(i) || skipIndices.has(i)) { skipped++; continue; }
 
       const company = (mapping.company ? row[mapping.company] ?? '' : '').trim();
       const role = (mapping.role ? row[mapping.role] ?? '' : '').trim();
-      if (!company || !role) { skipped++; return; }
+      if (!company || !role) { skipped++; continue; }
 
       const rawStatus = mapping.status ? (row[mapping.status] ?? '') : '';
       const status: JobStatus = rawStatus ? normalizeStatus(rawStatus) : 'applied';
@@ -508,19 +518,20 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
         updatedAt: ts,
       };
 
-      storage.addJob(job);
-      awardPoints('application_added', job.id);
+      await db.addJob(job);
+      await awardPoints('application_added', job.id);
 
-      if (status === 'recruiter_screen') awardPoints('status_recruiter_screen', job.id, `Recruiter screen earned for ${company}`);
-      else if (status === 'interviewing') awardPoints('status_interviewing', job.id);
-      else if (status === 'offer')        awardPoints('status_offer', job.id);
-      else if (status === 'rejected')     awardPoints('status_rejected', job.id);
+      if (status === 'recruiter_screen') await awardPoints('status_recruiter_screen', job.id, `Recruiter screen earned for ${company}`);
+      else if (status === 'interviewing') await awardPoints('status_interviewing', job.id);
+      else if (status === 'offer')        await awardPoints('status_offer', job.id);
+      else if (status === 'rejected')     await awardPoints('status_rejected', job.id);
 
-      if (job.notes?.trim()) awardPoints('notes_added', job.id);
+      if (job.notes?.trim()) await awardPoints('notes_added', job.id);
 
       success++;
-    });
+    }
 
+    setImporting(false);
     setResult({ success, skipped });
     onImported();
   }
@@ -615,11 +626,11 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
             )}
             {step === 3 && (
               <button
-                disabled={validCount === 0}
+                disabled={validCount === 0 || importing}
                 onClick={doImport}
                 className="flex items-center gap-1.5 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                Import {validCount} Job{validCount !== 1 ? 's' : ''} →
+                {importing ? 'Importing…' : `Import ${validCount} Job${validCount !== 1 ? 's' : ''} →`}
               </button>
             )}
           </div>

@@ -8,7 +8,7 @@ import {
   DEDUPLICATED_EVENT_TYPES,
   RankTier,
 } from './types';
-import { storage } from './storage';
+import { db } from './db';
 import { newId, now } from './utils';
 
 export function getRank(totalPoints: number): RankTier {
@@ -58,55 +58,62 @@ function isCurrentWeek(dateStr: string): boolean {
 
 /**
  * Awards points for a user action. Returns true if points were awarded,
- * false if the event was blocked by deduplication.
+ * false if the event was blocked by deduplication or the user is not authenticated.
  */
-export function awardPoints(eventType: PointEventType, applicationId?: string, descriptionOverride?: string): boolean {
-  const events = storage.getPointEvents();
+export async function awardPoints(
+  eventType: PointEventType,
+  applicationId?: string,
+  descriptionOverride?: string,
+): Promise<boolean> {
+  try {
+    const events = await db.getPointEvents();
 
-  // Block duplicate awards for one-time-per-application events
-  if (DEDUPLICATED_EVENT_TYPES.includes(eventType) && applicationId) {
-    const duplicate = events.some(
-      (e) => e.eventType === eventType && e.applicationId === applicationId
-    );
-    if (duplicate) return false;
+    // Block duplicate awards for one-time-per-application events
+    if (DEDUPLICATED_EVENT_TYPES.includes(eventType) && applicationId) {
+      const duplicate = events.some(
+        (e) => e.eventType === eventType && e.applicationId === applicationId,
+      );
+      if (duplicate) return false;
+    }
+
+    const points = POINT_VALUES[eventType];
+
+    const event: PointEvent = {
+      id: newId(),
+      applicationId,
+      eventType,
+      points,
+      description: descriptionOverride ?? POINT_DESCRIPTIONS[eventType],
+      createdAt: now(),
+    };
+
+    await db.addPointEvent(event);
+
+    const progress = await db.getUserProgress();
+    const ts = now();
+
+    let weeklyPoints = progress.weeklyPoints;
+    let weekStartDate = progress.weekStartDate;
+    if (!isCurrentWeek(weekStartDate)) {
+      weeklyPoints = 0;
+      weekStartDate = ts;
+    }
+
+    const newTotal = progress.totalPoints + points;
+    const newRank = getRank(newTotal);
+
+    await db.saveUserProgress({
+      ...progress,
+      totalPoints: newTotal,
+      currentRank: newRank.name,
+      weeklyPoints: weeklyPoints + points,
+      weekStartDate,
+      lastActivityDate: ts,
+      updatedAt: ts,
+    });
+
+    return true;
+  } catch {
+    return false;
   }
-
-  const points = POINT_VALUES[eventType];
-
-  const event: PointEvent = {
-    id: newId(),
-    applicationId,
-    eventType,
-    points,
-    description: descriptionOverride ?? POINT_DESCRIPTIONS[eventType],
-    createdAt: now(),
-  };
-
-  storage.addPointEvent(event);
-
-  const progress = storage.getUserProgress();
-  const ts = now();
-
-  // Reset weekly counter when a new week has started
-  let weeklyPoints = progress.weeklyPoints;
-  let weekStartDate = progress.weekStartDate;
-  if (!isCurrentWeek(weekStartDate)) {
-    weeklyPoints = 0;
-    weekStartDate = ts;
-  }
-
-  const newTotal = progress.totalPoints + points;
-  const newRank = getRank(newTotal);
-
-  storage.saveUserProgress({
-    ...progress,
-    totalPoints: newTotal,
-    currentRank: newRank.name,
-    weeklyPoints: weeklyPoints + points,
-    weekStartDate,
-    lastActivityDate: ts,
-    updatedAt: ts,
-  });
-
-  return true;
 }

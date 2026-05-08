@@ -14,8 +14,9 @@ import {
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Plus, Upload, Target } from 'lucide-react';
-import { Job, JobStatus, UserProfile, KANBAN_COLUMNS } from '@/lib/types';
-import { storage } from '@/lib/storage';
+import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
+import { useAuth } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
 import KanbanColumn from './KanbanColumn';
@@ -72,31 +73,24 @@ function detectCollision(args: Parameters<typeof pointerWithin>[0]) {
 }
 
 export default function KanbanBoard() {
+  const { profile } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeJob, setActiveJob] = useState<Job | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addStatus, setAddStatus] = useState<JobStatus>('applied');
   const [detailJob, setDetailJob] = useState<Job | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  const load = useCallback(() => {
-    const raw = storage.getJobs();
+  const load = useCallback(async () => {
+    const raw = await db.getJobs();
     const { jobs: normalized, changed } = ensureSortOrders(raw);
-    if (changed) storage.saveJobs(normalized);
+    if (changed) await db.saveJobs(normalized);
     setJobs(normalized);
   }, []);
 
   useEffect(() => {
     load();
-    setProfile(storage.getUserProfile());
   }, [load]);
-
-  useEffect(() => {
-    function onProfileUpdated() { setProfile(storage.getUserProfile()); }
-    window.addEventListener('nojob:profile-updated', onProfileUpdated);
-    return () => window.removeEventListener('nojob:profile-updated', onProfileUpdated);
-  }, []);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -104,7 +98,7 @@ export default function KanbanBoard() {
     setActiveJob(jobs.find((j) => j.id === e.active.id) ?? null);
   }
 
-  function handleDragEnd(e: DragEndEvent) {
+  async function handleDragEnd(e: DragEndEvent) {
     setActiveJob(null);
     const { active, over } = e;
     if (!over || active.id === over.id) return;
@@ -144,10 +138,10 @@ export default function KanbanBoard() {
       );
     } else {
       // ── Different column: status change + positional insert ───────────
-      if (newStatus === 'recruiter_screen') awardPoints('status_recruiter_screen', draggedJob.id, `Recruiter screen earned for ${draggedJob.company}`);
-      else if (newStatus === 'interviewing') awardPoints('status_interviewing', draggedJob.id);
-      else if (newStatus === 'offer')        awardPoints('status_offer', draggedJob.id);
-      else if (newStatus === 'rejected')     awardPoints('status_rejected', draggedJob.id);
+      if (newStatus === 'recruiter_screen') await awardPoints('status_recruiter_screen', draggedJob.id, `Recruiter screen earned for ${draggedJob.company}`);
+      else if (newStatus === 'interviewing') await awardPoints('status_interviewing', draggedJob.id);
+      else if (newStatus === 'offer')        await awardPoints('status_offer', draggedJob.id);
+      else if (newStatus === 'rejected')     await awardPoints('status_rejected', draggedJob.id);
 
       // Source column: gap-fill after removing dragged job
       const sourceJobs = jobs
@@ -185,7 +179,7 @@ export default function KanbanBoard() {
 
     // Optimistic update then persist
     setJobs(updatedJobs);
-    storage.saveJobs(updatedJobs);
+    await db.saveJobs(updatedJobs);
   }
 
   function openAdd(status: JobStatus) {

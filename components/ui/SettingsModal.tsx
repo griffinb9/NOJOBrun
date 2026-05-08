@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { X, Check } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { storage } from '@/lib/storage';
 import { isValidEmail, now } from '@/lib/utils';
 
@@ -18,6 +20,7 @@ function stripHtml(text: string): string {
 }
 
 export default function SettingsModal({ open, onClose, onProfileSaved }: Props) {
+  const { user, profile, refreshProfile } = useAuth();
   const [apiKey, setApiKey] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,8 +33,6 @@ export default function SettingsModal({ open, onClose, onProfileSaved }: Props) 
     if (open) {
       const settings = storage.getSettings();
       setApiKey(settings.anthropicApiKey ?? '');
-
-      const profile = storage.getUserProfile();
       setFullName(profile?.fullName ?? '');
       setEmail(profile?.email ?? '');
       setResumeText(profile?.resumeText ?? '');
@@ -39,9 +40,9 @@ export default function SettingsModal({ open, onClose, onProfileSaved }: Props) 
       setProfileErrors({});
       setResumeSaved(false);
     }
-  }, [open]);
+  }, [open, profile]);
 
-  function save() {
+  async function save() {
     const errs: typeof profileErrors = {};
     const nameTrimmed = fullName.trim();
     const emailTrimmed = email.trim();
@@ -56,41 +57,40 @@ export default function SettingsModal({ open, onClose, onProfileSaved }: Props) 
 
     storage.saveSettings({ anthropicApiKey: apiKey.trim() || undefined });
 
-    if (nameTrimmed) {
-      const existing = storage.getUserProfile();
+    if (nameTrimmed && user) {
       const ts = now();
       const sanitized = stripHtml(resumeText).slice(0, RESUME_MAX);
-      const resumeChanged = sanitized !== (existing?.resumeText ?? '');
+      const resumeChanged = sanitized !== (profile?.resumeText ?? '');
 
-      storage.saveUserProfile({
-        id: existing?.id ?? ts,
+      await db.saveProfile({
+        id: user.id,
         fullName: nameTrimmed,
-        email: emailTrimmed.toLowerCase(),
+        email: emailTrimmed.toLowerCase() || profile?.email || user.email || '',
         resumeText: sanitized || undefined,
-        resumeUpdatedAt: resumeChanged && sanitized ? ts : existing?.resumeUpdatedAt,
-        createdAt: existing?.createdAt ?? ts,
+        resumeUpdatedAt: resumeChanged && sanitized ? ts : profile?.resumeUpdatedAt,
+        createdAt: profile?.createdAt ?? ts,
         updatedAt: ts,
       });
 
-      window.dispatchEvent(new Event('nojob:profile-updated'));
+      await refreshProfile();
       onProfileSaved?.();
     }
 
     onClose();
   }
 
-  function saveResume() {
-    const existing = storage.getUserProfile();
-    if (!existing) return;
+  async function saveResume() {
+    if (!user || !profile) return;
     const ts = now();
     const sanitized = stripHtml(resumeText).slice(0, RESUME_MAX);
-    storage.saveUserProfile({
-      ...existing,
+    await db.saveProfile({
+      ...profile,
       resumeText: sanitized || undefined,
-      resumeUpdatedAt: sanitized ? ts : existing.resumeUpdatedAt,
+      resumeUpdatedAt: sanitized ? ts : profile.resumeUpdatedAt,
       updatedAt: ts,
     });
-    setResumeUpdatedAt(sanitized ? ts : existing.resumeUpdatedAt);
+    await refreshProfile();
+    setResumeUpdatedAt(sanitized ? ts : profile.resumeUpdatedAt);
     setResumeSaved(true);
     setTimeout(() => setResumeSaved(false), 3000);
   }
@@ -187,7 +187,7 @@ export default function SettingsModal({ open, onClose, onProfileSaved }: Props) 
                 <button
                   type="button"
                   onClick={saveResume}
-                  disabled={!storage.getUserProfile()}
+                  disabled={!profile}
                   className="px-3 py-1.5 text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg font-medium disabled:opacity-40"
                 >
                   Save Resume
@@ -195,7 +195,7 @@ export default function SettingsModal({ open, onClose, onProfileSaved }: Props) 
               </div>
             </div>
 
-            {previewSnippet && !resumeSaved && resumeText.trim() === (storage.getUserProfile()?.resumeText ?? '').trim() && (
+            {previewSnippet && !resumeSaved && resumeText.trim() === (profile?.resumeText ?? '').trim() && (
               <div className="mt-2 px-3 py-2 bg-stone-50 rounded-lg border border-stone-100">
                 <p className="text-xs text-stone-400 font-medium mb-0.5">Saved resume preview</p>
                 <p className="text-xs text-stone-500 line-clamp-2">{previewSnippet}{resumeText.trim().length > 120 ? '…' : ''}</p>

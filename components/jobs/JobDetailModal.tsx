@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X, ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import { Job, STATUS_COLORS, STATUS_LABELS } from '@/lib/types';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/db';
 import { formatDate } from '@/lib/utils';
 import JobFormModal from './JobFormModal';
 import EmailGenerator from '@/components/emails/EmailGenerator';
@@ -21,9 +21,9 @@ export default function JobDetailModal({ job, onClose, onEdit }: Props) {
   const [tab, setTab] = useState<Tab>('details');
   const [editOpen, setEditOpen] = useState(false);
 
-  function deleteJob() {
+  async function deleteJob() {
     if (!confirm('Delete this job?')) return;
-    storage.deleteJob(job.id);
+    await db.deleteJob(job.id);
     onClose();
   }
 

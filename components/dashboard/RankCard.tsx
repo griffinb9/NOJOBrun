@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Flame, TrendingUp, Target, BadgeCheck, Trophy, Rocket, Mic, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/db';
 import { getRankProgress } from '@/lib/points';
 import { UserProgress } from '@/lib/types';
 import SegmentedProgressRing from '@/components/ui/SegmentedProgressRing';
@@ -34,7 +34,7 @@ export default function RankCard({ refreshKey }: Props) {
   const [progress, setProgress] = useState<UserProgress | null>(null);
 
   useEffect(() => {
-    setProgress(storage.getUserProgress());
+    db.getUserProgress().then(setProgress);
   }, [refreshKey]);
 
   if (!progress) return null;

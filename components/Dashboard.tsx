@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Flame } from 'lucide-react';
-import { storage } from '@/lib/storage';
-import { Job, UserProfile, STATUS_COLORS, STATUS_BORDER, STATUS_LABELS } from '@/lib/types';
+import { db } from '@/lib/db';
+import { useAuth } from '@/lib/auth';
+import { Job, STATUS_COLORS, STATUS_BORDER, STATUS_LABELS, UserProgress } from '@/lib/types';
 import JobFormModal from './jobs/JobFormModal';
 import RankCard from './dashboard/RankCard';
-import ProfileSetupModal from './ui/ProfileSetupModal';
 import { formatDate, daysSince, getDashboardTitle } from '@/lib/utils';
 import { getRank } from '@/lib/points';
 
@@ -20,31 +20,30 @@ const GREETINGS = [
 ];
 
 export default function Dashboard() {
+  const { profile } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [progress, setProgress] = useState<UserProgress | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [rankKey, setRankKey] = useState(0);
-  const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
   const [greeting, setGreeting] = useState(GREETINGS[0]);
 
   useEffect(() => {
-    setJobs(storage.getJobs());
-    setProfile(storage.getUserProfile());
-  }, []);
-
-  useEffect(() => {
-    function onProfileUpdated() {
-      const latest = storage.getUserProfile();
-      if (latest) setProfile(latest);
+    async function loadData() {
+      const [j, p] = await Promise.all([db.getJobs(), db.getUserProgress()]);
+      setJobs(j);
+      setProgress(p);
     }
-    window.addEventListener('nojob:profile-updated', onProfileUpdated);
-    return () => window.removeEventListener('nojob:profile-updated', onProfileUpdated);
+    loadData();
   }, []);
 
   useEffect(() => {
     setGreeting(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
   }, []);
 
-  function load() { setJobs(storage.getJobs()); }
+  async function load() {
+    const j = await db.getJobs();
+    setJobs(j);
+  }
 
   function handleJobAdded() {
     setAddOpen(false);
@@ -52,13 +51,9 @@ export default function Dashboard() {
     setRankKey((k) => k + 1);
   }
 
-  function handleProfileComplete(p: UserProfile) { setProfile(p); }
-
-  if (profile === undefined) return null;
-  if (profile === null) return <ProfileSetupModal onComplete={handleProfileComplete} />;
+  if (!profile || !progress) return null;
 
   const title = getDashboardTitle(profile.fullName);
-  const progress = storage.getUserProgress();
   const currentRank = getRank(progress.totalPoints);
 
   const total = jobs.length;

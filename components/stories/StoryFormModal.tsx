@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { Story } from '@/lib/types';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/db';
 import { newId, now } from '@/lib/utils';
 
 const ALL_TAGS = ['Leadership', 'Teamwork', 'Problem Solving', 'Technical', 'Communication'];
@@ -34,13 +34,13 @@ export default function StoryFormModal({ open, onClose, story }: Props) {
     }));
   }
 
-  function save() {
+  async function save() {
     if (!form.title.trim()) return;
     const ts = now();
     if (story) {
-      storage.updateStory({ ...story, ...form, updatedAt: ts });
+      await db.updateStory({ ...story, ...form, updatedAt: ts });
     } else {
-      storage.addStory({ ...form, id: newId(), createdAt: ts, updatedAt: ts });
+      await db.addStory({ ...form, id: newId(), createdAt: ts, updatedAt: ts });
     }
     onClose();
   }
