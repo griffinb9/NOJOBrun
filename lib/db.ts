@@ -163,11 +163,13 @@ export const db = {
 
   async getProfile(): Promise<UserProfile | null> {
     const userId = await uid();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('id', userId)
       .single();
+    // PGRST116 = "no rows found" — expected when profile doesn't exist yet
+    if (error && error.code !== 'PGRST116') return null;
     return data ? rowToProfile(data as ProfileRow) : null;
   },
 

@@ -4,10 +4,9 @@ import { useAuth } from '@/lib/auth';
 import AuthPage from '@/app/auth/page';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
-import ProfileSetupModal from '@/components/ui/ProfileSetupModal';
 
 export default function AppGate({ children }: { children: React.ReactNode }) {
-  const { user, profile, loading, refreshProfile } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -28,7 +27,6 @@ export default function AppGate({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <MobileNav />
-      {!profile?.fullName?.trim() && <ProfileSetupModal onComplete={refreshProfile} />}
     </>
   );
 }

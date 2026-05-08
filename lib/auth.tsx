@@ -81,34 +81,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * next load goes straight to Supabase.
    */
   const loadProfile = useCallback(async (u: User) => {
+    // Build an in-memory profile from whatever we know about the user.
+    // This is used as a fallback when the DB is unavailable (e.g. tables not yet created).
+    const buildFallback = (): UserProfile => {
+      const metaName = (u.user_metadata?.full_name as string | undefined)?.trim() ?? '';
+      const legacy   = readLegacyProfile();
+      const ts = now();
+      return {
+        id: u.id,
+        fullName: metaName || legacy?.fullName?.trim() || '',
+        email:    legacy?.email || u.email || '',
+        createdAt: ts, updatedAt: ts,
+      };
+    };
+
     try {
       let p = await db.getProfile();
 
       if (!p) {
-        // ── Resolve fullName from known sources ──────────────────────────
-        const metaName = (u.user_metadata?.full_name as string | undefined)?.trim();
-        const legacy   = readLegacyProfile();
-        const fullName = metaName || legacy?.fullName?.trim();
-        const email    = legacy?.email || u.email || '';
-
-        if (fullName) {
-          const ts = now();
-          const newProfile: UserProfile = { id: u.id, fullName, email, createdAt: ts, updatedAt: ts };
-          try {
-            await db.saveProfile(newProfile);
-            await db.initProgress();
-            // Migration complete — remove the legacy key
-            if (typeof window !== 'undefined') localStorage.removeItem('nojob_user_profile');
-            p = newProfile;
-          } catch {
-            // Save failed — ProfileSetupModal will appear as a fallback
-          }
+        const newProfile = buildFallback();
+        try {
+          await db.saveProfile(newProfile);
+          await db.initProgress();
+          if (typeof window !== 'undefined') localStorage.removeItem('nojob_user_profile');
+        } catch {
+          // DB unavailable (e.g. tables not yet migrated) — use in-memory profile
+          // so the app still loads. Data will persist to DB once tables exist.
         }
+        p = newProfile;
       }
 
       setProfile(p);
     } catch {
-      setProfile(null);
+      // Absolute fallback — never leave user stuck on a blank screen
+      setProfile(buildFallback());
     }
   }, []);
 
