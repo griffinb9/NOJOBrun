@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Kanban, BookOpen, Trophy } from 'lucide-react';
 
 const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/tracker', label: 'Tracker', icon: Kanban },
   { href: '/story-bank', label: 'Stories', icon: BookOpen },
+  { href: '/achievements', label: 'Wins', icon: Trophy },
 ];
 
 export default function MobileNav() {

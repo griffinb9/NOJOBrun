@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, BookOpen, Settings } from 'lucide-react';
+import { LayoutDashboard, Kanban, BookOpen, Trophy, Settings } from 'lucide-react';
 import SettingsModal from '@/components/ui/SettingsModal';
 import { useState } from 'react';
 
@@ -10,6 +10,7 @@ const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/tracker', label: 'Job Tracker', icon: Kanban },
   { href: '/story-bank', label: 'Story Bank', icon: BookOpen },
+  { href: '/achievements', label: 'Achievements', icon: Trophy },
 ];
 
 export default function Sidebar() {
