@@ -13,8 +13,8 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Plus, Upload } from 'lucide-react';
-import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
+import { Plus, Upload, Target } from 'lucide-react';
+import { Job, JobStatus, UserProfile, KANBAN_COLUMNS } from '@/lib/types';
 import { storage } from '@/lib/storage';
 import { now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
@@ -56,6 +56,13 @@ function ensureSortOrders(rawJobs: Job[]): { jobs: Job[]; changed: boolean } {
   return { jobs: result, changed };
 }
 
+function getTrackerTitle(fullName?: string | null): string {
+  const name = fullName?.trim();
+  if (!name) return 'My Job Tracker';
+  const firstName = name.split(/\s+/)[0];
+  return `${firstName}'s Job Tracker`;
+}
+
 // pointerWithin detects the droppable the cursor is physically inside (smallest rect
 // wins, so a card beats its column). Fall back to closestCenter when the pointer is
 // outside all droppables (e.g. slightly outside the board edge).
@@ -71,6 +78,7 @@ export default function KanbanBoard() {
   const [addStatus, setAddStatus] = useState<JobStatus>('applied');
   const [detailJob, setDetailJob] = useState<Job | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const load = useCallback(() => {
     const raw = storage.getJobs();
@@ -79,7 +87,16 @@ export default function KanbanBoard() {
     setJobs(normalized);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    setProfile(storage.getUserProfile());
+  }, [load]);
+
+  useEffect(() => {
+    function onProfileUpdated() { setProfile(storage.getUserProfile()); }
+    window.addEventListener('nojob:profile-updated', onProfileUpdated);
+    return () => window.removeEventListener('nojob:profile-updated', onProfileUpdated);
+  }, []);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -181,19 +198,77 @@ export default function KanbanBoard() {
       .filter((j) => j.status === status)
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
+  const trackerTitle = getTrackerTitle(profile?.fullName);
+  const totalApps    = jobs.length;
+  const activeCount  = jobs.filter((j) => j.status === 'interviewing' || j.status === 'recruiter_screen').length;
+  const offerCount   = jobs.filter((j) => j.status === 'offer').length;
+  const followUps    = jobs.filter((j) => {
+    if (j.status !== 'applied' || !j.dateApplied) return false;
+    return (Date.now() - new Date(j.dateApplied).getTime()) > 7 * 86_400_000;
+  }).length;
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white">
-        <div>
-          <h1 className="text-xl font-bold text-stone-900 tracking-tight">Job Tracker</h1>
-          <p className="text-stone-400 text-xs mt-0.5">
-            {jobs.length === 0
-              ? 'No applications yet'
-              : `${jobs.length} application${jobs.length !== 1 ? 's' : ''} tracked`}
-          </p>
+      {/* ── Header ── */}
+      <div className="relative flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white overflow-hidden">
+        {/* Background glow blob */}
+        <div className="absolute -inset-2 bg-gradient-to-br from-blue-500/[0.04] to-violet-500/[0.06] blur-2xl pointer-events-none" />
+
+        {/* Left: title + stats */}
+        <div className="relative">
+          <div className="flex items-center gap-2 group cursor-default">
+            <Target
+              size={18}
+              strokeWidth={2}
+              className="text-violet-500 shrink-0 transition-all duration-200 group-hover:scale-110 group-hover:text-violet-400"
+            />
+            <h1 className="text-[1.35rem] font-extrabold tracking-tight leading-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent transition-opacity duration-200 group-hover:opacity-80">
+              {trackerTitle}
+            </h1>
+          </div>
+
+          {/* Subtitle + inline stats */}
+          <div className="flex items-center flex-wrap gap-x-2.5 gap-y-0.5 mt-1">
+            <p className="text-[11px] text-stone-400 leading-none">
+              Track your pipeline. Move jobs forward.
+            </p>
+            {totalApps > 0 && (
+              <>
+                <span className="text-stone-300 text-[10px]">·</span>
+                <span className="text-[11px] font-semibold text-blue-600 leading-none tabular-nums">
+                  {totalApps} app{totalApps !== 1 ? 's' : ''}
+                </span>
+                {activeCount > 0 && (
+                  <>
+                    <span className="text-stone-300 text-[10px]">·</span>
+                    <span className="text-[11px] font-semibold text-violet-600 leading-none tabular-nums">
+                      {activeCount} active
+                    </span>
+                  </>
+                )}
+                {offerCount > 0 && (
+                  <>
+                    <span className="text-stone-300 text-[10px]">·</span>
+                    <span className="text-[11px] font-semibold text-emerald-600 leading-none tabular-nums">
+                      {offerCount} offer{offerCount !== 1 ? 's' : ''}
+                    </span>
+                  </>
+                )}
+                {followUps > 0 && (
+                  <>
+                    <span className="text-stone-300 text-[10px]">·</span>
+                    <span className="text-[11px] font-semibold text-amber-500 leading-none tabular-nums">
+                      {followUps} follow-up{followUps !== 1 ? 's' : ''} needed
+                    </span>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Right: action buttons */}
+        <div className="relative flex items-center gap-2">
           <button
             onClick={() => setImportOpen(true)}
             className="flex items-center gap-2 border border-stone-200 text-stone-600 px-3.5 py-2 rounded-xl text-sm font-medium hover:bg-stone-50 hover:border-stone-300 active:scale-[0.97] transition-all"
