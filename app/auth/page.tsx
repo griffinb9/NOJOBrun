@@ -17,6 +17,11 @@ export default function AuthPage() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
 
+  function switchMode(m: Mode) {
+    setMode(m);
+    setErrors({});
+  }
+
   function validate(): boolean {
     const errs: Record<string, string> = {};
     if (mode === 'signup' && !fullName.trim()) errs.fullName = 'Full name is required.';
@@ -43,7 +48,6 @@ export default function AuthPage() {
       } else if (needsConfirmation) {
         setConfirmationSent(true);
       }
-      // If !needsConfirmation, the auth state change fires and AppGate redirects
     }
 
     setSubmitting(false);
@@ -56,7 +60,7 @@ export default function AuthPage() {
           <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">
             NOJOB
           </span>
-          <div className="mt-8 bg-white rounded-2xl border border-stone-100 shadow-sm p-8">
+          <div className="mt-8 bg-white rounded-2xl border border-stone-100 shadow-sm p-6 sm:p-8">
             <div className="w-12 h-12 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">✉️</span>
             </div>
@@ -66,7 +70,7 @@ export default function AuthPage() {
               Click it to activate your account, then come back to sign in.
             </p>
             <button
-              onClick={() => { setConfirmationSent(false); setMode('signin'); }}
+              onClick={() => { setConfirmationSent(false); switchMode('signin'); }}
               className="mt-6 text-sm text-violet-600 hover:underline"
             >
               Back to sign in
@@ -77,100 +81,151 @@ export default function AuthPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">
-            NOJOB
-          </span>
-          <p className="text-stone-400 text-sm mt-1">Your job search, simplified</p>
-        </div>
+  const emailExists = errors.form === 'EMAIL_EXISTS';
 
-        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-8">
-          {/* Mode toggle */}
-          <div className="flex rounded-xl border border-stone-200 p-1 mb-6">
-            {(['signin', 'signup'] as Mode[]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => { setMode(m); setErrors({}); }}
-                className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                  mode === m
-                    ? 'bg-violet-600 text-white shadow-sm'
-                    : 'text-stone-500 hover:text-stone-700'
-                }`}
-              >
-                {m === 'signin' ? 'Sign In' : 'Sign Up'}
-              </button>
-            ))}
+  return (
+    // overflow-y-auto + items-start lets the page scroll on small screens
+    // when the keyboard is open or the form is taller than the viewport.
+    <div className="min-h-screen bg-stone-50 overflow-y-auto">
+      <div className="flex min-h-screen items-start justify-center p-4 pt-8 sm:items-center sm:pt-4">
+        <div className="w-full max-w-md">
+
+          {/* Brand */}
+          <div className="text-center mb-5 sm:mb-8">
+            <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">
+              NOJOB
+            </span>
+            <p className="text-stone-400 text-sm mt-1">Your job search, simplified</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <Field label="Full Name" error={errors.fullName}>
+          <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 sm:p-8">
+
+            {/* Mode toggle — segmented control */}
+            <div className="flex rounded-xl border border-stone-200 p-1 mb-6">
+              {(['signin', 'signup'] as Mode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => switchMode(m)}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    mode === m
+                      ? 'bg-violet-600 text-white shadow-sm'
+                      : 'text-stone-500 hover:text-stone-700'
+                  }`}
+                >
+                  {m === 'signin' ? 'Log In' : 'Sign Up'}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {mode === 'signup' && (
+                <Field label="Full Name" error={errors.fullName}>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Griffin Boyle"
+                    autoComplete="name"
+                    className={inputCls(!!errors.fullName)}
+                  />
+                </Field>
+              )}
+
+              <Field label="Email" error={errors.email}>
                 <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Griffin Boyle"
-                  autoFocus
-                  className={inputCls(!!errors.fullName)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="griffin@example.com"
+                  autoComplete="email"
+                  inputMode="email"
+                  className={inputCls(!!errors.email)}
                 />
               </Field>
-            )}
 
-            <Field label="Email" error={errors.email}>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="griffin@example.com"
-                autoFocus={mode === 'signin'}
-                className={inputCls(!!errors.email)}
-              />
-            </Field>
-
-            <Field label="Password" error={errors.password}>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className={inputCls(!!errors.password)}
-              />
-            </Field>
-
-            {mode === 'signup' && (
-              <Field label="Confirm Password" error={errors.confirm}>
+              <Field label="Password" error={errors.password}>
                 <input
                   type="password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={inputCls(!!errors.confirm)}
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  className={inputCls(!!errors.password)}
                 />
               </Field>
-            )}
 
-            {errors.form && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                {errors.form}
-              </p>
-            )}
+              {mode === 'signup' && (
+                <Field label="Confirm Password" error={errors.confirm}>
+                  <input
+                    type="password"
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    className={inputCls(!!errors.confirm)}
+                  />
+                </Field>
+              )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-gradient-to-r from-blue-500 to-violet-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 disabled:opacity-50 transition-all mt-2"
-            >
-              {submitting
-                ? (mode === 'signin' ? 'Signing in…' : 'Creating account…')
-                : (mode === 'signin' ? 'Sign In' : 'Create Account')
-              }
-            </button>
-          </form>
+              {errors.form && (
+                emailExists ? (
+                  <div className="text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                    <p className="text-amber-800 font-medium">An account with this email already exists.</p>
+                    <button
+                      type="button"
+                      onClick={() => switchMode('signin')}
+                      className="mt-1 text-violet-600 font-medium hover:underline text-sm"
+                    >
+                      Log in instead →
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                    {errors.form}
+                  </p>
+                )
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-gradient-to-r from-blue-500 to-violet-600 text-white py-3 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 disabled:opacity-50 transition-all mt-2"
+              >
+                {submitting
+                  ? (mode === 'signin' ? 'Logging in…' : 'Creating account…')
+                  : (mode === 'signin' ? 'Log In' : 'Create Account')
+                }
+              </button>
+            </form>
+
+            {/* Plain-text toggle — always visible below the button */}
+            <p className="text-center text-sm text-stone-400 mt-5">
+              {mode === 'signin' ? (
+                <>
+                  New here?{' '}
+                  <button
+                    type="button"
+                    onClick={() => switchMode('signup')}
+                    className="text-violet-600 font-medium hover:underline"
+                  >
+                    Create an account
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => switchMode('signin')}
+                    className="text-violet-600 font-medium hover:underline"
+                  >
+                    Log in
+                  </button>
+                </>
+              )}
+            </p>
+          </div>
         </div>
       </div>
     </div>

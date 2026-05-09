@@ -171,6 +171,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const u = data.user;
     if (!u) return { error: 'Sign-up failed. Please try again.', needsConfirmation: false };
 
+    // Supabase returns identities: [] when the email is already registered.
+    // It does not surface an error to avoid leaking account existence, but we
+    // can detect it and give a clear prompt to log in instead.
+    if (Array.isArray(u.identities) && u.identities.length === 0) {
+      return { error: 'EMAIL_EXISTS', needsConfirmation: false };
+    }
+
     const needsConfirmation = !data.session;
 
     // With an immediate session, create the profile row now.
