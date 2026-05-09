@@ -11,3 +11,24 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Prevent double-tap zoom delay on interactive elements */
+a, button, [role='button'] {
+  touch-action: manipulation;
+}
+
+/* Prevent iOS from zooming when an input is focused.
+   iOS zooms when the focused input's font-size is below 16 px. */
+@media (max-width: 767px) {
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
+  input[type='date'],
+  input[type='search'],
+  input[type='tel'],
+  input[type='url'],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

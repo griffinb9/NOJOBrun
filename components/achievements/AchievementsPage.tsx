@@ -93,9 +93,9 @@ export default function AchievementsPage() {
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto w-full">
       {/* Header */}
-      <div className="flex items-end justify-between mb-10 gap-4">
+      <div className="flex flex-wrap items-end justify-between mb-6 md:mb-10 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Achievements</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-stone-900 tracking-tight">Achievements</h1>
           <p className="text-stone-400 text-sm mt-2">
             Milestone badges earned across your job search.
           </p>

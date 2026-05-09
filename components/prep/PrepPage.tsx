@@ -133,9 +133,9 @@ export default function PrepPage({ paramsPromise }: Props) {
         <Link href="/tracker" className="flex items-center gap-1.5 text-stone-400 hover:text-violet-600 text-sm mb-4">
           <ArrowLeft size={14} /> Back to Tracker
         </Link>
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-stone-800">Interview Prep</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-stone-800">Interview Prep</h1>
             <p className="text-stone-400 text-sm mt-0.5">
               {job.company} — {job.role}
             </p>

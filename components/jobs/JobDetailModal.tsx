@@ -39,7 +39,7 @@ export default function JobDetailModal({ job, onClose, onEdit }: Props) {
         <div className="absolute inset-0 bg-black/30" onClick={onClose} />
         <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-start justify-between p-5 border-b border-stone-100">
+          <div className="flex items-start justify-between p-4 sm:p-5 border-b border-stone-100">
             <div className="flex-1 min-w-0 mr-4">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-bold text-stone-800">{job.company}</h2>
@@ -69,12 +69,12 @@ export default function JobDetailModal({ job, onClose, onEdit }: Props) {
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-stone-100 px-5">
+          <div className="flex border-b border-stone-100 px-3 sm:px-5">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`px-3 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                className={`px-2 sm:px-3 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap ${
                   tab === t.id
                     ? 'border-violet-600 text-violet-700'
                     : 'border-transparent text-stone-400 hover:text-stone-600'
@@ -86,7 +86,7 @@ export default function JobDetailModal({ job, onClose, onEdit }: Props) {
           </div>
 
           {/* Tab content */}
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5">
             {tab === 'details' && <DetailsTab job={job} />}
             {tab === 'emails' && <EmailGenerator job={job} />}
             {tab === 'prep' && (

@@ -118,7 +118,7 @@ export default function Dashboard() {
     <div className="p-6 md:p-10 max-w-5xl mx-auto w-full">
 
       {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="relative flex items-start justify-between gap-4 mb-10">
+      <div className="relative flex flex-wrap items-start justify-between gap-x-4 gap-y-3 mb-8 md:mb-10">
         {/* Background glow blob */}
         <div className="absolute -inset-x-4 -inset-y-3 rounded-2xl bg-gradient-to-br from-blue-500/[0.05] to-violet-500/[0.07] blur-2xl pointer-events-none" />
 
@@ -135,7 +135,7 @@ export default function Dashboard() {
               strokeWidth={2}
               className="text-violet-500 shrink-0 transition-all duration-200 group-hover:scale-110 group-hover:text-violet-400"
             />
-            <h1 className="text-[2rem] font-extrabold tracking-tight leading-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent transition-opacity duration-200 group-hover:opacity-80">
+            <h1 className="text-2xl md:text-[2rem] font-extrabold tracking-tight leading-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent transition-opacity duration-200 group-hover:opacity-80">
               {title}
             </h1>
           </div>
@@ -205,7 +205,7 @@ export default function Dashboard() {
             {recent.map((job) => (
               <div
                 key={job.id}
-                className={`flex items-center gap-4 px-6 py-4 border-b border-stone-100 last:border-0 hover:bg-slate-50/60 transition-colors border-l-4 ${STATUS_BORDER[job.status]}`}
+                className={`flex items-center gap-3 px-4 md:px-6 py-3 md:py-4 border-b border-stone-100 last:border-0 hover:bg-slate-50/60 transition-colors border-l-4 ${STATUS_BORDER[job.status]}`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-stone-800 text-sm truncate">

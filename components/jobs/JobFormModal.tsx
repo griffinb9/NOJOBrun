@@ -122,7 +122,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
         </div>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Company *">
               <input value={form.company} onChange={(e) => set('company', e.target.value)} placeholder="Acme Corp" />
             </Field>
@@ -131,7 +131,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Location">
               <input value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="Remote" />
             </Field>
@@ -140,7 +140,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Status">
               <select value={form.status} onChange={(e) => set('status', e.target.value as JobStatus)}>
                 {KANBAN_COLUMNS.map((c) => (
@@ -185,7 +185,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
             )}
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Contact Name">
               <input value={form.contactName} onChange={(e) => set('contactName', e.target.value)} placeholder="Jane Smith" />
             </Field>

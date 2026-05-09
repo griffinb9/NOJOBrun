@@ -7,6 +7,7 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   pointerWithin,
   useSensor,
@@ -94,7 +95,13 @@ export default function KanbanBoard() {
     load();
   }, [load]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    // Mouse: start drag after 8 px movement
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // Touch: require a 200 ms long-press before drag starts so normal
+    // scrolling still works on mobile
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+  );
 
   function handleDragStart(e: DragStartEvent) {
     setActiveJob(jobs.find((j) => j.id === e.active.id) ?? null);
@@ -206,7 +213,7 @@ export default function KanbanBoard() {
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
-      <div className="relative flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white overflow-hidden">
+      <div className="relative flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-stone-100 bg-white overflow-hidden">
         {/* Background glow blob */}
         <div className="absolute -inset-2 bg-gradient-to-br from-blue-500/[0.04] to-violet-500/[0.06] blur-2xl pointer-events-none" />
 
@@ -267,10 +274,10 @@ export default function KanbanBoard() {
         <div className="relative flex items-center gap-2">
           <button
             onClick={() => setImportOpen(true)}
-            className="flex items-center gap-2 border border-stone-200 text-stone-600 px-3.5 py-2 rounded-xl text-sm font-medium hover:bg-stone-50 hover:border-stone-300 active:scale-[0.97] transition-all"
+            className="flex items-center gap-2 border border-stone-200 text-stone-600 px-2.5 md:px-3.5 py-2 rounded-xl text-sm font-medium hover:bg-stone-50 hover:border-stone-300 active:scale-[0.97] transition-all"
           >
             <Upload size={14} strokeWidth={2} />
-            Import
+            <span className="hidden sm:inline">Import</span>
           </button>
           <button
             onClick={() => openAdd('applied')}

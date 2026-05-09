@@ -50,14 +50,14 @@ export default function StoryBank() {
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto w-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-stone-800">STAR Formatter</h1>
           <p className="text-stone-400 text-sm mt-0.5">Your STAR stories for interview prep</p>
         </div>
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-violet-700"
+          className="flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-violet-700 shrink-0"
         >
           <Plus size={15} />
           Add Story
