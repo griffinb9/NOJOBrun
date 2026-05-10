@@ -1,12 +1,16 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import AuthPage from '@/app/auth/page';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
+import MobileLayout from '@/components/mobile/MobileLayout';
+import { MobileNavProvider } from '@/lib/mobile-nav';
 
 export default function AppGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const pathname = usePathname();
 
   if (loading) {
     return (
@@ -18,15 +22,30 @@ export default function AppGate({ children }: { children: React.ReactNode }) {
 
   if (!user) return <AuthPage />;
 
+  // Pages that should render their own content on mobile
+  // (already mobile-optimized, e.g. PrepPage with its own back button)
+  const showPageOnMobile = pathname.startsWith('/prep/');
+
   return (
-    <>
-      <div className="flex min-h-screen">
+    <MobileNavProvider>
+      {/* ── Desktop layout ──────────────────────────────────────── */}
+      <div className="hidden md:flex min-h-screen">
         <Sidebar />
-        <main className="flex-1 flex flex-col min-h-screen pb-20 md:pb-0 overflow-x-hidden">
+        <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
           {children}
         </main>
       </div>
+
+      {/* ── Mobile layout ───────────────────────────────────────── */}
+      <div className="md:hidden flex flex-col min-h-screen pb-16">
+        {showPageOnMobile ? (
+          <main className="flex-1 overflow-y-auto">{children}</main>
+        ) : (
+          <MobileLayout />
+        )}
+      </div>
+
       <MobileNav />
-    </>
+    </MobileNavProvider>
   );
 }

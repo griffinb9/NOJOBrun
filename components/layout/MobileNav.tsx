@@ -1,91 +1,58 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, BookOpen, Trophy, MoreHorizontal, Settings, LogOut, Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { useAuth } from '@/lib/auth';
-import SettingsModal from '@/components/ui/SettingsModal';
+import { usePathname, useRouter } from 'next/navigation';
+import { Home, Briefcase, FileText, User, ChevronLeft } from 'lucide-react';
+import { useMobileNav, type MobileTab } from '@/lib/mobile-nav';
 
-const nav = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/tracker', label: 'Tracker', icon: Kanban },
-  { href: '/achievements', label: 'Wins', icon: Trophy },
-  { href: '/story-bank', label: 'STAR', icon: BookOpen },
+const TABS: { id: MobileTab; label: string; icon: React.ElementType }[] = [
+  { id: 'home',    label: 'Home',    icon: Home      },
+  { id: 'jobs',    label: 'Jobs',    icon: Briefcase },
+  { id: 'prep',    label: 'Prep',    icon: FileText  },
+  { id: 'profile', label: 'Profile', icon: User      },
 ];
 
 export default function MobileNav() {
+  const { tab, setTab } = useMobileNav();
   const pathname = usePathname();
-  const { signOut } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
+  const router = useRouter();
+  const isPrepDetail = pathname.startsWith('/prep/');
 
-  async function handleSignOut() {
-    setSigningOut(true);
-    setMenuOpen(false);
-    await signOut();
+  function handleBack() {
+    setTab('prep');
+    router.push('/');
   }
 
   return (
-    <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 flex z-50">
-        {nav.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+    <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-sm border-t border-stone-200/80 flex z-50">
+      {isPrepDetail ? (
+        <button
+          onClick={handleBack}
+          className="flex items-center gap-1.5 px-4 py-3 text-stone-500 text-sm font-medium"
+        >
+          <ChevronLeft size={18} />
+          Back to Prep
+        </button>
+      ) : (
+        TABS.map(({ id, label, icon: Icon }) => {
+          const active = tab === id;
           return (
-            <Link
-              key={href}
-              href={href}
+            <button
+              key={id}
+              onClick={() => setTab(id)}
               className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors ${
                 active ? 'text-violet-600' : 'text-stone-400'
               }`}
             >
-              <Icon size={20} />
+              <span className={`flex items-center justify-center w-8 h-7 rounded-xl transition-colors ${
+                active ? 'bg-violet-50' : ''
+              }`}>
+                <Icon size={19} />
+              </span>
               {label}
-            </Link>
+            </button>
           );
-        })}
-
-        {/* More */}
-        <button
-          onClick={() => setMenuOpen(true)}
-          className="flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium text-stone-400"
-        >
-          <MoreHorizontal size={20} />
-          More
-        </button>
-      </nav>
-
-      {/* More menu overlay */}
-      {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex items-end" onClick={() => setMenuOpen(false)}>
-          <div
-            className="w-full bg-white rounded-t-2xl shadow-xl p-4 pb-8"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-10 h-1 bg-stone-200 rounded-full mx-auto mb-4" />
-            <button
-              onClick={() => { setMenuOpen(false); setSettingsOpen(true); }}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors"
-            >
-              <Settings size={18} className="text-stone-400" />
-              Settings
-            </button>
-            <button
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors disabled:opacity-50"
-            >
-              {signingOut
-                ? <Loader2 size={18} className="animate-spin text-stone-400" />
-                : <LogOut size={18} className="text-stone-400" />}
-              {signingOut ? 'Signing out…' : 'Sign Out'}
-            </button>
-          </div>
-        </div>
+        })
       )}
-
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-    </>
+    </nav>
   );
 }
