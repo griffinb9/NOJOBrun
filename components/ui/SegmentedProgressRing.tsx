@@ -8,19 +8,25 @@ interface Props {
   size?: number;
   segmentCount?: number;
   children?: ReactNode;
+  /** Dark card variant: dimmer inactive segments, brighter active glow */
+  variant?: 'light' | 'dark';
 }
 
-const MAX_COLOR = '#10B981';
-
-// Blue (#3B82F6) → Violet (#7C3AED) → Teal (#14B8A6)
-function segmentColor(t: number, isMax: boolean): string {
-  if (isMax) return MAX_COLOR;
+// Rich blue → indigo-violet → teal (light: ~12% more chroma; still SaaS-refined)
+function segmentColor(t: number, isMax: boolean, dark: boolean): string {
+  if (isMax) return dark ? '#34d399' : '#0d9488';
   if (t <= 0.5) {
     const s = t * 2;
-    return `rgb(${lerp(59,124,s)},${lerp(130,58,s)},${lerp(246,237,s)})`;
+    if (dark) {
+      return `rgb(${lerp(92,118,s)},${lerp(118,132,s)},${lerp(188,205,s)})`;
+    }
+    return `rgb(${lerp(48,108,s)},${lerp(125,72,s)},${lerp(252,236,s)})`;
   }
   const s = (t - 0.5) * 2;
-  return `rgb(${lerp(124,20,s)},${lerp(58,184,s)},${lerp(237,166,s)})`;
+  if (dark) {
+    return `rgb(${lerp(118,82,s)},${lerp(132,148,s)},${lerp(205,195,s)})`;
+  }
+  return `rgb(${lerp(108,16,s)},${lerp(72,175,s)},${lerp(236,175,s)})`;
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -32,7 +38,9 @@ export default function SegmentedProgressRing({
   size = 164,
   segmentCount = 32,
   children,
+  variant = 'light',
 }: Props) {
+  const dark = variant === 'dark';
   const uid    = useId().replace(/[^a-zA-Z0-9]/g, '');
   const glowSm = `sgs${uid}`;
   const glowLg = `sgl${uid}`;
@@ -75,7 +83,11 @@ export default function SegmentedProgressRing({
     const y      = cy + R * Math.sin(angle);
     const active = i < displayCount;
     const isTip  = active && i === displayCount - 1;
-    const color  = active ? segmentColor(i / (segmentCount - 1), isMax) : 'rgba(148,163,184,0.30)';
+    const color = active
+      ? segmentColor(i / (segmentCount - 1), isMax, dark)
+      : dark
+        ? 'rgba(255,255,255,0.14)'
+        : 'rgba(100,116,139,0.34)';
     return { x, y, active, isTip, color };
   });
 
@@ -107,7 +119,7 @@ export default function SegmentedProgressRing({
 
           {/* Normal active segment glow */}
           <filter id={glowSm} x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur stdDeviation="2.8" result="blur" />
+            <feGaussianBlur stdDeviation={dark ? 3.4 : 3.25} result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -116,7 +128,7 @@ export default function SegmentedProgressRing({
 
           {/* Stronger glow for tip */}
           <filter id={glowLg} x="-350%" y="-350%" width="800%" height="800%">
-            <feGaussianBlur stdDeviation="5.5" result="blur" />
+            <feGaussianBlur stdDeviation={dark ? 6.5 : 6.35} result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />

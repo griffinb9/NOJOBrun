@@ -9,10 +9,16 @@ create table if not exists public.user_profiles (
   full_name       text not null default '',
   email           text not null default '',
   resume_text     text,
+  resume_file_name text,
   resume_updated_at timestamptz,
   created_at      timestamptz default now() not null,
   updated_at      timestamptz default now() not null
 );
+
+-- Existing projects: add resume columns if the table predates them
+alter table public.user_profiles add column if not exists resume_text text;
+alter table public.user_profiles add column if not exists resume_file_name text;
+alter table public.user_profiles add column if not exists resume_updated_at timestamptz;
 
 -- applications (job tracker)
 create table if not exists public.applications (
@@ -72,9 +78,16 @@ create table if not exists public.user_progress (
   weekly_goal        integer      default 50   not null,
   week_start_date    timestamptz  default now() not null,
   last_activity_date timestamptz  default now() not null,
+  current_streak     integer      default 0    not null,
+  longest_streak     integer      default 0    not null,
+  last_streak_date   date,
   created_at         timestamptz  default now() not null,
   updated_at         timestamptz  default now() not null
 );
+
+alter table public.user_progress add column if not exists current_streak integer not null default 0;
+alter table public.user_progress add column if not exists longest_streak integer not null default 0;
+alter table public.user_progress add column if not exists last_streak_date date;
 
 -- ── Row Level Security ───────────────────────────────────────────────────────
 

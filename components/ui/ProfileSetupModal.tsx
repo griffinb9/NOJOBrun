@@ -30,7 +30,7 @@ export default function ProfileSetupModal({ onComplete }: Props) {
       updatedAt: ts,
     };
     try {
-      await db.saveProfile(profile);
+      await db.saveProfile(profile, { omitResumeOnSchemaError: true });
       await db.initProgress();
       await onComplete();
     } catch (e) {

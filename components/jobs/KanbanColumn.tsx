@@ -6,14 +6,41 @@ import { Plus } from 'lucide-react';
 import { Job, JobStatus } from '@/lib/types';
 import JobCard from './JobCard';
 
-// Colored dot per status
-const COL_DOT: Record<string, string> = {
-  applied:          'bg-blue-500',
-  recruiter_screen: 'bg-sky-400',
-  interviewing:     'bg-violet-500',
-  offer:            'bg-emerald-500',
-  rejected:         'bg-red-400',
-  ghosted:          'bg-stone-300',
+/** Per-lane orb gradient + outer glow (inline shadow for premium control) */
+const LANE_ORB: Record<
+  JobStatus,
+  { gradient: string; shadow: string }
+> = {
+  applied: {
+    gradient: 'from-blue-500 to-blue-600',
+    shadow:
+      '0 0 0 1px rgba(255,255,255,0.35) inset, 0 1px 2px rgba(15,23,42,0.08), 0 0 12px rgba(59,130,246,0.28), 0 0 24px rgba(59,130,246,0.12)',
+  },
+  recruiter_screen: {
+    gradient: 'from-sky-400 to-cyan-500',
+    shadow:
+      '0 0 0 1px rgba(255,255,255,0.35) inset, 0 1px 2px rgba(15,23,42,0.08), 0 0 12px rgba(14,165,233,0.26), 0 0 22px rgba(6,182,212,0.1)',
+  },
+  interviewing: {
+    gradient: 'from-indigo-500 to-violet-600',
+    shadow:
+      '0 0 0 1px rgba(255,255,255,0.32) inset, 0 1px 2px rgba(15,23,42,0.08), 0 0 12px rgba(99,102,241,0.26), 0 0 22px rgba(139,92,246,0.1)',
+  },
+  offer: {
+    gradient: 'from-emerald-500 to-teal-600',
+    shadow:
+      '0 0 0 1px rgba(255,255,255,0.35) inset, 0 1px 2px rgba(15,23,42,0.08), 0 0 12px rgba(16,185,129,0.26), 0 0 22px rgba(20,184,166,0.1)',
+  },
+  rejected: {
+    gradient: 'from-red-500 to-rose-600',
+    shadow:
+      '0 0 0 1px rgba(255,255,255,0.28) inset, 0 1px 2px rgba(15,23,42,0.08), 0 0 12px rgba(239,68,68,0.22), 0 0 20px rgba(244,63,94,0.08)',
+  },
+  ghosted: {
+    gradient: 'from-slate-400 to-slate-500',
+    shadow:
+      '0 0 0 1px rgba(255,255,255,0.25) inset, 0 1px 2px rgba(15,23,42,0.06), 0 0 10px rgba(100,116,139,0.18)',
+  },
 };
 
 // Drag-over highlight — status-tinted ring + bg
@@ -46,14 +73,20 @@ const COL_EMPTY: Record<string, string> = {
   ghosted:          'No shame, it happens.',
 };
 
-// Count badge accent color per status
-const COL_COUNT: Record<string, string> = {
-  applied:          'bg-blue-100 text-blue-700',
-  recruiter_screen: 'bg-sky-100 text-sky-700',
-  interviewing:     'bg-violet-100 text-violet-700',
-  offer:            'bg-emerald-100 text-emerald-700',
-  rejected:         'bg-red-100 text-red-600',
-  ghosted:          'bg-stone-100 text-stone-500',
+/** Glass count pill — border + text tuned per lane */
+const LANE_BADGE: Record<JobStatus, string> = {
+  applied:
+    'border-blue-200/70 bg-blue-50/50 text-blue-800 shadow-[0_0_16px_-4px_rgba(59,130,246,0.2)]',
+  recruiter_screen:
+    'border-sky-200/70 bg-sky-50/50 text-sky-900 shadow-[0_0_16px_-4px_rgba(14,165,233,0.18)]',
+  interviewing:
+    'border-indigo-200/70 bg-indigo-50/45 text-indigo-900 shadow-[0_0_16px_-4px_rgba(99,102,241,0.18)]',
+  offer:
+    'border-emerald-200/70 bg-emerald-50/50 text-emerald-900 shadow-[0_0_16px_-4px_rgba(16,185,129,0.18)]',
+  rejected:
+    'border-red-200/70 bg-red-50/50 text-red-800 shadow-[0_0_16px_-4px_rgba(239,68,68,0.15)]',
+  ghosted:
+    'border-slate-200/80 bg-slate-100/60 text-slate-600 shadow-[0_1px_8px_-2px_rgba(15,23,42,0.08)]',
 };
 
 interface Props {
@@ -66,39 +99,76 @@ interface Props {
 export default function KanbanColumn({ column, jobs, onAddJob, onSelectJob }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
-  const dot      = COL_DOT[column.id]   ?? 'bg-stone-300';
-  const overCls  = COL_OVER[column.id]  ?? 'bg-violet-50 ring-1 ring-violet-200';
-  const bgCls    = COL_BG[column.id]    ?? 'bg-stone-100/60';
-  const countCls = COL_COUNT[column.id] ?? 'bg-stone-100 text-stone-500';
+  const orb = LANE_ORB[column.id] ?? LANE_ORB.ghosted;
+  const overCls = COL_OVER[column.id] ?? 'bg-violet-50 ring-1 ring-violet-200';
+  const bgCls = COL_BG[column.id] ?? 'bg-stone-100/60';
+  const badgeCls = LANE_BADGE[column.id] ?? LANE_BADGE.ghosted;
   const emptyCopy = COL_EMPTY[column.id] ?? 'Drop here';
 
   return (
-    <div className="flex flex-col w-64 shrink-0">
-      {/* ── Column header ── */}
-      <div className="flex items-center justify-between mb-3 px-0.5">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
-          <span className="text-[13px] font-semibold text-stone-700 truncate">{column.label}</span>
+    <div className="flex w-64 shrink-0 flex-col">
+      {/* ── Lane header (premium Kanban) ── */}
+      <div
+        className="
+          group/header mb-3 rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2.5
+          shadow-sm shadow-slate-900/[0.04] ring-1 ring-slate-200/40 backdrop-blur-md
+          transition-all duration-300 ease-out
+          hover:border-slate-200 hover:bg-white/95 hover:shadow-md hover:shadow-slate-900/[0.06]
+        "
+      >
+        <div className="flex items-center gap-2.5">
+          {/* Status orb */}
+          <div className="relative shrink-0">
+            <div
+              className={`kanban-column-orb h-3 w-3 rounded-full bg-gradient-to-br ${orb.gradient} ring-2 ring-white/90`}
+              style={{ boxShadow: orb.shadow }}
+              aria-hidden
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-bold tracking-tight text-slate-800">
+              {column.label}
+            </span>
+          </div>
+
           {jobs.length > 0 && (
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums ${countCls}`}>
+            <span
+              className={`
+                inline-flex min-h-[1.375rem] min-w-[1.375rem] shrink-0 items-center justify-center
+                rounded-full border px-2 py-0.5 text-[11px] font-bold tabular-nums backdrop-blur-sm
+                transition-all duration-300 ease-out
+                group-hover/header:scale-105
+                ${badgeCls}
+              `}
+            >
               {jobs.length}
             </span>
           )}
+
+          <button
+            type="button"
+            onClick={onAddJob}
+            className="
+              flex h-8 w-8 shrink-0 items-center justify-center rounded-full
+              border border-slate-200/90 bg-white/90 text-slate-500 shadow-sm
+              transition-all duration-200 ease-out
+              hover:-translate-y-0.5 hover:border-indigo-300/70 hover:bg-white hover:text-indigo-700
+              hover:shadow-md hover:shadow-indigo-500/[0.12]
+              active:translate-y-0 active:scale-95
+            "
+            title={`Add job to ${column.label}`}
+          >
+            <Plus size={15} strokeWidth={2.25} className="transition-transform duration-200 group-hover/header:rotate-90" />
+          </button>
         </div>
-        <button
-          onClick={onAddJob}
-          className="shrink-0 ml-1 w-6 h-6 flex items-center justify-center rounded-lg text-stone-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"
-          title={`Add job to ${column.label}`}
-        >
-          <Plus size={14} strokeWidth={2.5} />
-        </button>
       </div>
 
       {/* ── Drop zone ── */}
       <div
         ref={setNodeRef}
         className={`
-          flex-1 flex flex-col gap-2 min-h-36 rounded-2xl p-2
+          flex min-h-36 flex-1 flex-col gap-2 rounded-2xl p-2
           transition-all duration-150
           ${isOver ? overCls : bgCls}
         `}
@@ -109,10 +179,9 @@ export default function KanbanColumn({ column, jobs, onAddJob, onSelectJob }: Pr
           ))}
         </SortableContext>
 
-        {/* Empty state */}
         {jobs.length === 0 && (
-          <div className="flex-1 flex items-center justify-center px-4 py-6">
-            <p className="text-[11px] text-stone-400 text-center leading-snug">
+          <div className="flex flex-1 items-center justify-center px-4 py-6">
+            <p className="text-center text-[11px] leading-snug text-stone-400">
               {emptyCopy}
             </p>
           </div>

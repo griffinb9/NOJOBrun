@@ -155,8 +155,10 @@ export default function PrepPage({ paramsPromise }: Props) {
         <div className="flex items-center gap-3 px-4 py-3 mb-2 bg-amber-50 border border-amber-200 rounded-xl">
           <FileText size={15} className="text-amber-500 shrink-0" />
           <p className="text-sm text-amber-700 flex-1">
-            Add your resume in{' '}
-            <span className="font-medium">Settings</span>{' '}
+            Upload or paste your resume on{' '}
+            <Link href="/profile" className="font-medium text-violet-700 hover:underline">
+              Profile
+            </Link>{' '}
             for more personalized answers.
           </p>
         </div>

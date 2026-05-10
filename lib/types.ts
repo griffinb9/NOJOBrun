@@ -5,6 +5,8 @@ export interface UserProfile {
   fullName: string;
   email: string;
   resumeText?: string;
+  /** Original uploaded file name when resume text came from a file; not stored on disk. */
+  resumeFileName?: string;
   resumeUpdatedAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -142,6 +144,12 @@ export interface UserProgress {
   weeklyGoal: number;
   weekStartDate: string;
   lastActivityDate: string;
+  /** Consecutive calendar days (local) with ≥1 eligible application, per job-streak rules. */
+  currentStreak?: number;
+  /** Best consecutive-day run seen from current applications (status applied + dates). */
+  longestStreak?: number;
+  /** Latest calendar day in the active streak chain (YYYY-MM-DD), if any. */
+  lastStreakDate?: string | null;
   createdAt: string;
   updatedAt: string;
 }

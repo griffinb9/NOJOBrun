@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# capacitor / ios
+ios/App/Pods/
+ios/App/build/
+ios/.DS_Store
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

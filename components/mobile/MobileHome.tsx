@@ -14,6 +14,8 @@ import { daysSince } from '@/lib/utils';
 import { autoGhostStaleApplications } from '@/lib/autoGhost';
 import { useMobileNav } from '@/lib/mobile-nav';
 import JobFormModal from '@/components/jobs/JobFormModal';
+import JobStreakCard from '@/components/dashboard/JobStreakCard';
+import { computeJobStreak } from '@/lib/job-streak';
 
 const RANK_ICONS: Record<string, LucideIcon> = {
   'Underdog':      Rocket,
@@ -116,8 +118,9 @@ export default function MobileHome() {
     async function load() {
       const [rawJobs, p] = await Promise.all([db.getJobs(), db.getUserProgress()]);
       const j = await autoGhostStaleApplications(rawJobs);
+      const progress = await db.syncJobStreakFromJobs(j, p);
       setJobs(j);
-      setProgress(p);
+      setProgress(progress);
     }
     load();
   }, []);
@@ -125,9 +128,9 @@ export default function MobileHome() {
   async function handleJobAdded() {
     setAddOpen(false);
     const rawJobs = await db.getJobs();
-    setJobs(await autoGhostStaleApplications(rawJobs));
-    const p = await db.getUserProgress();
-    setProgress(p);
+    const j = await autoGhostStaleApplications(rawJobs);
+    setJobs(j);
+    setProgress(await db.syncJobStreakFromJobs(j));
   }
 
   if (!profile || !progress) {
@@ -149,6 +152,7 @@ export default function MobileHome() {
   const focusItems = buildFocusItems(jobs);
 
   const weeklyPct = Math.min(100, Math.round((progress.weeklyPoints / progress.weeklyGoal) * 100));
+  const streakSummary = computeJobStreak(jobs);
 
   // Recent activity (last 3 updated jobs)
   const recent = [...jobs]
@@ -238,6 +242,8 @@ export default function MobileHome() {
             </div>
           </div>
         </div>
+
+        <JobStreakCard summary={streakSummary} jobs={jobs} />
 
         {/* ── Quick stats ─────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-2">

@@ -16,6 +16,9 @@ const DEFAULT_PROGRESS: UserProgress = {
   weeklyGoal: 50,
   weekStartDate: new Date().toISOString(),
   lastActivityDate: new Date().toISOString(),
+  currentStreak: 0,
+  longestStreak: 0,
+  lastStreakDate: undefined,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };

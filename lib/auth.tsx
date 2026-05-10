@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!p) {
         const newProfile = buildFallback();
         try {
-          await db.saveProfile(newProfile);
+          await db.saveProfile(newProfile, { omitResumeOnSchemaError: true });
           await db.initProgress();
           if (typeof window !== 'undefined') localStorage.removeItem('nojob_user_profile');
         } catch {
@@ -189,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createdAt: ts, updatedAt: ts,
       };
       try {
-        await db.saveProfile(newProfile);
+        await db.saveProfile(newProfile, { omitResumeOnSchemaError: true });
         await db.initProgress();
         setProfile(newProfile);
       } catch {

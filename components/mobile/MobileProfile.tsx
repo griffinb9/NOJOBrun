@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   LogOut, Settings, FileText, CheckCircle2, AlertCircle, Loader2, ChevronRight,
 } from 'lucide-react';
@@ -8,6 +9,7 @@ import { useAuth } from '@/lib/auth';
 import SettingsModal from '@/components/ui/SettingsModal';
 
 export default function MobileProfile() {
+  const router = useRouter();
   const { profile, signOut, refreshProfile } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -44,7 +46,8 @@ export default function MobileProfile() {
         {/* Resume status */}
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
           <button
-            onClick={() => setSettingsOpen(true)}
+            type="button"
+            onClick={() => router.push('/profile')}
             className="w-full flex items-center gap-3 px-5 py-4 hover:bg-stone-50 active:bg-stone-100 transition-colors"
           >
             <FileText size={18} className="text-stone-400 shrink-0" />
