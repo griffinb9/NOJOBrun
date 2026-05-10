@@ -1,5 +1,6 @@
 import type { Job, JobStatus } from './types';
 import { db } from './db';
+import { compareAppliedByDateDesc } from './kanbanOrder';
 import { now } from './utils';
 
 export type FieldKey =
@@ -114,35 +115,38 @@ export function parseImportDate(raw: string): string | null {
 }
 
 /**
- * After a batch import, re-sorts the entire "applied" column by application
- * date descending (newest = sortOrder 0 = top of column).
+ * After a batch import, assigns Applied column sort_order.
  *
- * Falls back to createdAt when dateApplied is absent or unparseable.
- * Invalid dates sort to the bottom (timestamp 0).
- * Only saves rows whose sortOrder actually changed.
- *
- * This sets explicit sortOrder values so ensureSortOrders respects them on
- * every subsequent load. Manual drag-and-drop overwrites sortOrder normally.
+ * Auto mode: full column sorted by application date desc (fallback createdAt), invalid dates last.
+ * Manual mode: imported Applied rows (by id) are prepended in date desc, existing rows keep order below.
  */
-export async function sortAppliedColumnAfterImport(): Promise<void> {
+export async function sortAppliedColumnAfterImport(importedIds: string[]): Promise<void> {
+  const profile = await db.getProfile();
+  const manual = profile?.appliedManualSort ?? false;
+  const imported = new Set(importedIds);
+
   const allJobs = await db.getJobs();
   const applied = allJobs.filter((j: Job) => j.status === 'applied');
   if (applied.length === 0) return;
 
-  function effectiveTs(j: Job): number {
-    const ref = j.dateApplied ?? j.createdAt;
-    const t = new Date(ref).getTime();
-    return isNaN(t) ? 0 : t;
-  }
-
-  // Stable descending sort: newer date = lower index = top of column
-  const sorted = [...applied].sort((a, b) => effectiveTs(b) - effectiveTs(a));
-
   const ts = now();
   const toSave: Job[] = [];
-  sorted.forEach((j, i) => {
-    if (j.sortOrder !== i) toSave.push({ ...j, sortOrder: i, updatedAt: ts });
-  });
+
+  if (!manual) {
+    const sorted = [...applied].sort(compareAppliedByDateDesc);
+    sorted.forEach((j, i) => {
+      if (j.sortOrder !== i) toSave.push({ ...j, sortOrder: i, updatedAt: ts });
+    });
+  } else {
+    const newlyImported = applied.filter((j) => imported.has(j.id));
+    const existing = applied.filter((j) => !imported.has(j.id));
+    newlyImported.sort(compareAppliedByDateDesc);
+    existing.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    const merged = [...newlyImported, ...existing];
+    merged.forEach((j, i) => {
+      if (j.sortOrder !== i) toSave.push({ ...j, sortOrder: i, updatedAt: ts });
+    });
+  }
 
   if (toSave.length > 0) await db.saveJobs(toSave);
 }

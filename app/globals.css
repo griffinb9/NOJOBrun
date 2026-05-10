@@ -3,6 +3,13 @@
 :root {
   --background: #F8FAFC;
   --foreground: #0F172A;
+  /* Premium warm accent (supporting; blue-violet remains primary) */
+  --accent-amber: #e9a93d;
+  --accent-amber-soft: #f5b942;
+  --accent-amber-bright: #ffb84d;
+  --accent-amber-deep: #dfa43a;
+  --accent-amber-glow: rgba(233, 169, 61, 0.28);
+  --accent-amber-glow-soft: rgba(245, 185, 66, 0.14);
 }
 
 body {
@@ -42,25 +49,122 @@ a, button, [role='button'] {
   }
 }
 
-/* Application streak card — cinematic flame ring (mid-depth surface; still restrained) */
+/* Application streak — soft gold flame halo + cool indigo (refined, not neon) */
 @keyframes streak-flame-pulse {
   0%,
   100% {
     box-shadow:
-      0 0 22px rgba(249, 115, 22, 0.32),
-      0 0 40px rgba(99, 102, 241, 0.14),
+      0 0 20px rgba(245, 185, 66, 0.32),
+      0 0 36px rgba(233, 169, 61, 0.22),
+      0 0 44px rgba(99, 102, 241, 0.12),
       inset 0 0 18px rgba(255, 255, 255, 0.55);
   }
   50% {
     box-shadow:
-      0 0 30px rgba(249, 115, 22, 0.38),
-      0 0 52px rgba(99, 102, 241, 0.17),
+      0 0 26px rgba(255, 184, 77, 0.38),
+      0 0 42px rgba(233, 169, 61, 0.28),
+      0 0 54px rgba(99, 102, 241, 0.15),
       inset 0 0 20px rgba(255, 255, 255, 0.62);
   }
 }
 
 .streak-flame-pulse {
   animation: streak-flame-pulse 2.4s ease-in-out infinite;
+}
+
+/* Compact dashboard streak widget — outer card warm pulse (active only) */
+@keyframes streak-widget-active-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 12px 32px -10px rgba(49, 46, 129, 0.14),
+      0 0 26px rgba(249, 115, 22, 0.14),
+      0 0 36px rgba(245, 185, 66, 0.12),
+      0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+  }
+  50% {
+    box-shadow:
+      0 14px 36px -10px rgba(49, 46, 129, 0.15),
+      0 0 34px rgba(249, 115, 22, 0.2),
+      0 0 48px rgba(245, 185, 66, 0.16),
+      0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+  }
+}
+
+.streak-widget-active-glow {
+  animation: streak-widget-active-glow 2.75s ease-in-out infinite;
+}
+
+/* Streak widget flame icon — subtle celebratory pulse (legacy / small icons) */
+@keyframes streak-widget-flame-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.35)) drop-shadow(0 0 12px rgba(245, 185, 66, 0.25));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.45)) drop-shadow(0 0 18px rgba(245, 185, 66, 0.32));
+    transform: scale(1.06);
+  }
+}
+
+.streak-widget-flame-active {
+  animation: streak-widget-flame-pulse 2.2s ease-in-out infinite;
+}
+
+/* Large streak widget flame — gentle flicker + scale + warm glow (active only) */
+@keyframes streak-flame-mega {
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1) drop-shadow(0 0 8px rgba(249, 115, 22, 0.42)) drop-shadow(0 0 16px rgba(245, 185, 66, 0.28))
+      drop-shadow(0 0 4px rgba(220, 38, 38, 0.15));
+    transform: scale(1);
+  }
+  22% {
+    opacity: 0.94;
+    filter: brightness(1.07) drop-shadow(0 0 10px rgba(249, 115, 22, 0.48)) drop-shadow(0 0 18px rgba(245, 185, 66, 0.32))
+      drop-shadow(0 0 5px rgba(220, 38, 38, 0.18));
+    transform: scale(1.03);
+  }
+  48% {
+    opacity: 1;
+    filter: brightness(1.05) drop-shadow(0 0 12px rgba(249, 115, 22, 0.52)) drop-shadow(0 0 20px rgba(245, 185, 66, 0.34))
+      drop-shadow(0 0 6px rgba(220, 38, 38, 0.2));
+    transform: scale(1.07);
+  }
+  72% {
+    opacity: 0.96;
+    filter: brightness(0.98) drop-shadow(0 0 9px rgba(249, 115, 22, 0.44)) drop-shadow(0 0 15px rgba(245, 185, 66, 0.26))
+      drop-shadow(0 0 4px rgba(220, 38, 38, 0.14));
+    transform: scale(1.02);
+  }
+}
+
+.streak-flame-mega-active {
+  animation: streak-flame-mega 2.35s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+@keyframes streak-flame-aura-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.08);
+  }
+}
+
+.streak-flame-aura {
+  animation: streak-flame-aura-pulse 2.35s ease-in-out infinite;
+}
+
+/* Streak widget: slightly brighter flame on card hover */
+.streak-widget-shell:hover .streak-flame-mega-active {
+  animation-duration: 2s;
 }
 
 /* Dashboard header — very slow gradient drift on title (underlay) */

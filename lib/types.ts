@@ -4,6 +4,11 @@ export interface UserProfile {
   id: string;
   fullName: string;
   email: string;
+  /**
+   * When true, Applied column order follows drag-and-drop sort_order only.
+   * When false, Applied defaults to newest application date first (see kanbanOrder).
+   */
+  appliedManualSort?: boolean;
   resumeText?: string;
   /** Original uploaded file name when resume text came from a file; not stored on disk. */
   resumeFileName?: string;
@@ -27,6 +32,8 @@ export interface Job {
   contactName?: string;
   contactEmail?: string;
   sortOrder?: number;
+  /** True once the job has ever been in recruiter screen, interviewing, or offer (sticky). */
+  hasResponse?: boolean;
   createdAt: string;
   updatedAt: string;
 }

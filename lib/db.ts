@@ -6,6 +6,7 @@
 
 import { supabase } from './supabase';
 import { Job, JobStatus, Story, PointEvent, UserProgress, UserProfile } from './types';
+import { mergeHasResponseForSave } from './job-response';
 import { computeJobStreak } from './job-streak';
 import { now } from './utils';
 
@@ -16,6 +17,7 @@ interface ProfileRow {
   resume_text: string | null;
   resume_file_name: string | null;
   resume_updated_at: string | null;
+  applied_manual_sort: boolean | null;
   created_at: string; updated_at: string;
 }
 
@@ -25,7 +27,9 @@ interface ApplicationRow {
   date_applied: string | null; interview_dates: string[];
   job_url: string | null; job_description: string | null;
   notes: string | null; contact_name: string | null; contact_email: string | null;
-  sort_order: number | null; created_at: string; updated_at: string;
+  sort_order: number | null;
+  has_response: boolean | null;
+  created_at: string; updated_at: string;
 }
 
 interface StoryRow {
@@ -54,6 +58,7 @@ interface ProgressRow {
 function rowToProfile(r: ProfileRow): UserProfile {
   return {
     id: r.id, fullName: r.full_name, email: r.email,
+    appliedManualSort: r.applied_manual_sort ?? false,
     resumeText: r.resume_text ?? undefined,
     resumeFileName: r.resume_file_name ?? undefined,
     resumeUpdatedAt: r.resume_updated_at ?? undefined,
@@ -67,6 +72,7 @@ function profileToRow(p: UserProfile): ProfileRow {
     resume_text: p.resumeText ?? null,
     resume_file_name: p.resumeFileName ?? null,
     resume_updated_at: p.resumeUpdatedAt ?? null,
+    applied_manual_sort: p.appliedManualSort ?? false,
     created_at: p.createdAt, updated_at: p.updatedAt,
   };
 }
@@ -124,6 +130,7 @@ function rowToJob(r: ApplicationRow): Job {
     contactName: r.contact_name ?? undefined,
     contactEmail: r.contact_email ?? undefined,
     sortOrder: r.sort_order ?? undefined,
+    hasResponse: r.has_response ?? false,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
@@ -141,6 +148,7 @@ function jobToRow(j: Job, userId: string): ApplicationRow {
     contact_name: j.contactName ?? null,
     contact_email: j.contactEmail ?? null,
     sort_order: j.sortOrder ?? null,
+    has_response: j.hasResponse ?? false,
     created_at: j.createdAt, updated_at: j.updatedAt,
   };
 }
@@ -258,25 +266,31 @@ export const db = {
   async saveJobs(jobs: Job[]): Promise<void> {
     if (jobs.length === 0) return;
     const userId = await uid();
+    const existing = await db.getJobs();
+    const byId = new Map(existing.map((j) => [j.id, j]));
+    const merged = jobs.map((j) => mergeHasResponseForSave(byId.get(j.id), j));
     await supabase
       .from('applications')
-      .upsert(jobs.map((j) => jobToRow(j, userId)), { onConflict: 'id' });
+      .upsert(merged.map((j) => jobToRow(j, userId)), { onConflict: 'id' });
     const fresh = await db.getJobs();
     await db.syncJobStreakFromJobs(fresh);
   },
 
   async addJob(job: Job): Promise<void> {
     const userId = await uid();
-    await supabase.from('applications').insert(jobToRow(job, userId));
+    const merged = mergeHasResponseForSave(undefined, job);
+    await supabase.from('applications').insert(jobToRow(merged, userId));
     const fresh = await db.getJobs();
     await db.syncJobStreakFromJobs(fresh);
   },
 
   async updateJob(job: Job): Promise<void> {
     const userId = await uid();
+    const prior = await db.getJob(job.id);
+    const merged = mergeHasResponseForSave(prior ?? undefined, job);
     await supabase
       .from('applications')
-      .update(jobToRow(job, userId))
+      .update(jobToRow(merged, userId))
       .eq('id', job.id);
     const fresh = await db.getJobs();
     await db.syncJobStreakFromJobs(fresh);

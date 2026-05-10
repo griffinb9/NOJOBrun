@@ -18,6 +18,7 @@ import { Plus, Upload, Target } from 'lucide-react';
 import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { ensureSortOrders, sortJobsForColumn } from '@/lib/kanbanOrder';
 import { now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
 import { autoGhostStaleApplications } from '@/lib/autoGhost';
@@ -26,38 +27,6 @@ import JobCard from './JobCard';
 import JobFormModal from './JobFormModal';
 import JobDetailModal from './JobDetailModal';
 import ImportJobsModal from './ImportJobsModal';
-
-/**
- * Ensures every job has a clean 0-based sortOrder within its status group.
- * Jobs that already have sortOrder keep their relative position.
- * Jobs without sortOrder fall back to createdAt ordering.
- */
-function ensureSortOrders(rawJobs: Job[]): { jobs: Job[]; changed: boolean } {
-  const byStatus = new Map<string, Job[]>();
-  for (const j of rawJobs) {
-    const g = byStatus.get(j.status) ?? [];
-    g.push(j);
-    byStatus.set(j.status, g);
-  }
-
-  const result: Job[] = [];
-  let changed = false;
-
-  for (const group of byStatus.values()) {
-    const sorted = [...group].sort((a, b) => {
-      if (a.sortOrder !== undefined && b.sortOrder !== undefined) return a.sortOrder - b.sortOrder;
-      if (a.sortOrder !== undefined) return -1;
-      if (b.sortOrder !== undefined) return 1;
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-    sorted.forEach((j, i) => {
-      if (j.sortOrder !== i) changed = true;
-      result.push({ ...j, sortOrder: i });
-    });
-  }
-
-  return { jobs: result, changed };
-}
 
 function getTrackerTitle(fullName?: string | null): string {
   const name = fullName?.trim();
@@ -75,7 +44,8 @@ function detectCollision(args: Parameters<typeof pointerWithin>[0]) {
 }
 
 export default function KanbanBoard() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
+  const appliedManualSort = profile?.appliedManualSort ?? false;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeJob, setActiveJob] = useState<Job | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -86,10 +56,10 @@ export default function KanbanBoard() {
   const load = useCallback(async () => {
     const raw = await db.getJobs();
     const afterGhost = await autoGhostStaleApplications(raw);
-    const { jobs: normalized, changed } = ensureSortOrders(afterGhost);
+    const { jobs: normalized, changed } = ensureSortOrders(afterGhost, appliedManualSort);
     if (changed) await db.saveJobs(normalized);
     setJobs(normalized);
-  }, []);
+  }, [appliedManualSort]);
 
   useEffect(() => {
     load();
@@ -128,9 +98,7 @@ export default function KanbanBoard() {
 
     if (draggedJob.status === newStatus) {
       // ── Same column: reorder only ─────────────────────────────────────
-      const colJobs = jobs
-        .filter((j) => j.status === newStatus)
-        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      const colJobs = sortJobsForColumn(newStatus, jobs, appliedManualSort);
 
       const fromIdx = colJobs.findIndex((j) => j.id === draggedId);
       // Dropping on the column background → move to end of column
@@ -153,14 +121,18 @@ export default function KanbanBoard() {
       else if (newStatus === 'rejected')     await awardPoints('status_rejected', draggedJob.id);
 
       // Source column: gap-fill after removing dragged job
-      const sourceJobs = jobs
-        .filter((j) => j.status === draggedJob.status && j.id !== draggedId)
-        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      const sourceJobs = sortJobsForColumn(
+        draggedJob.status,
+        jobs.filter((j) => j.id !== draggedId),
+        appliedManualSort,
+      );
 
       // Target column: find where to insert
-      const targetJobs = jobs
-        .filter((j) => j.status === newStatus && j.id !== draggedId)
-        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      const targetJobs = sortJobsForColumn(
+        newStatus,
+        jobs.filter((j) => j.id !== draggedId),
+        appliedManualSort,
+      );
 
       // Insert before the card we dropped on; append if dropped on column bg
       let insertIdx = targetJobs.length;
@@ -189,6 +161,17 @@ export default function KanbanBoard() {
     // Optimistic update then persist
     setJobs(updatedJobs);
     await db.saveJobs(updatedJobs);
+
+    if (
+      draggedJob.status === newStatus
+      && newStatus === 'applied'
+      && profile
+      && !profile.appliedManualSort
+    ) {
+      const ts = now();
+      await db.saveProfile({ ...profile, appliedManualSort: true, updatedAt: ts });
+      await refreshProfile();
+    }
   }
 
   function openAdd(status: JobStatus) {
@@ -197,9 +180,7 @@ export default function KanbanBoard() {
   }
 
   const sortedByOrder = (status: JobStatus) =>
-    jobs
-      .filter((j) => j.status === status)
-      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    sortJobsForColumn(status, jobs, appliedManualSort);
 
   const trackerTitle = getTrackerTitle(profile?.fullName);
   const totalApps    = jobs.length;

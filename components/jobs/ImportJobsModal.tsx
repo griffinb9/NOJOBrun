@@ -488,6 +488,7 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
     const ts = now();
     let success = 0;
     let skipped = 0;
+    const importedIds: string[] = [];
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -520,6 +521,7 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
       };
 
       await db.addJob(job);
+      importedIds.push(job.id);
       await awardPoints('application_added', job.id);
 
       if (status === 'recruiter_screen') await awardPoints('status_recruiter_screen', job.id, `Recruiter screen earned for ${company}`);
@@ -532,9 +534,8 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
       success++;
     }
 
-    // Re-sort the Applied column by dateApplied descending so the newest
-    // applications appear at the top. Only writes rows whose sortOrder changed.
-    if (success > 0) await sortAppliedColumnAfterImport();
+    // Applied column sort_order: auto = full column by date; manual = prepend imported Applied rows.
+    if (success > 0) await sortAppliedColumnAfterImport(importedIds);
 
     setImporting(false);
     setResult({ success, skipped });

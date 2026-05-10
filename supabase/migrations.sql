@@ -19,6 +19,7 @@ create table if not exists public.user_profiles (
 alter table public.user_profiles add column if not exists resume_text text;
 alter table public.user_profiles add column if not exists resume_file_name text;
 alter table public.user_profiles add column if not exists resume_updated_at timestamptz;
+alter table public.user_profiles add column if not exists applied_manual_sort boolean default false not null;
 
 -- applications (job tracker)
 create table if not exists public.applications (
@@ -37,10 +38,35 @@ create table if not exists public.applications (
   contact_name    text,
   contact_email   text,
   sort_order      integer,
+  has_response    boolean default false not null,
   created_at      timestamptz default now() not null,
   updated_at      timestamptz default now() not null
 );
 create index if not exists applications_user_id_idx on public.applications(user_id);
+
+-- Existing DBs: add sticky response flag + backfill
+alter table public.applications add column if not exists has_response boolean default false not null;
+
+update public.applications
+set has_response = true
+where status in ('recruiter_screen', 'interviewing', 'offer');
+
+update public.applications a
+set has_response = true
+where exists (
+  select 1
+  from public.point_events p
+  where p.application_id = a.id
+    and p.user_id = a.user_id
+    and p.event_type in (
+      'status_recruiter_screen',
+      'status_interviewing',
+      'status_offer',
+      'recruiter_screen',
+      'interview_scheduled',
+      'offer_received'
+    )
+);
 
 -- stories (story bank)
 create table if not exists public.stories (

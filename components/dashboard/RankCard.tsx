@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import {
   TrendingUp,
   Target,
@@ -26,11 +26,11 @@ interface Props {
 }
 
 const RANK_META: Record<string, { icon: LucideIcon; badgeClass: string }> = {
-  'Underdog':      { icon: Rocket,     badgeClass: 'border border-slate-200/90 bg-slate-100/90 text-slate-800 shadow-sm shadow-slate-900/8 ring-1 ring-white/60' },
-  'On the Rise':   { icon: TrendingUp, badgeClass: 'border border-blue-300/85 bg-gradient-to-r from-blue-50/98 to-indigo-50/90 text-blue-950 shadow-md shadow-blue-500/12 ring-1 ring-blue-200/50' },
-  'Locked In':     { icon: Target,     badgeClass: 'border border-indigo-300/80 bg-gradient-to-r from-indigo-50/98 to-violet-50/85 text-indigo-950 shadow-md shadow-indigo-500/15 ring-1 ring-indigo-200/55' },
+  'Underdog':      { icon: Rocket,     badgeClass: 'border border-slate-200/90 bg-slate-100/90 text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_2px_16px_-4px_rgba(245,185,66,0.07)] ring-1 ring-white/60' },
+  'On the Rise':   { icon: TrendingUp, badgeClass: 'border border-blue-300/85 bg-gradient-to-r from-blue-50/98 to-indigo-50/90 text-blue-950 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.12),0_2px_18px_-4px_rgba(245,185,66,0.08)] ring-1 ring-blue-200/50' },
+  'Locked In':     { icon: Target,     badgeClass: 'border border-indigo-300/80 bg-gradient-to-r from-indigo-50/98 to-violet-50/85 text-indigo-950 shadow-[0_4px_14px_-4px_rgba(99,102,241,0.14),0_2px_20px_-4px_rgba(245,185,66,0.09)] ring-1 ring-indigo-200/55' },
   'Interview Pro': { icon: Mic,        badgeClass: 'border border-amber-300/75 bg-amber-50/95 text-amber-950 shadow-md shadow-amber-500/12 ring-1 ring-amber-200/50' },
-  'Offer Season':  { icon: Sparkles,   badgeClass: 'border border-emerald-300/75 bg-emerald-50/95 text-emerald-950 shadow-md shadow-emerald-500/12 ring-1 ring-emerald-200/50' },
+  'Offer Season':  { icon: Sparkles,   badgeClass: 'border border-emerald-300/75 bg-emerald-50/95 text-emerald-950 shadow-[0_4px_12px_-4px_rgba(16,185,129,0.12),0_2px_16px_-4px_rgba(245,185,66,0.07)] ring-1 ring-emerald-200/50' },
 };
 
 const POINT_BADGES: { label: string; pts: number; icon: LucideIcon }[] = [
@@ -41,6 +41,7 @@ const POINT_BADGES: { label: string; pts: number; icon: LucideIcon }[] = [
 ];
 
 export default function RankCard({ refreshKey, streakSummary }: Props) {
+  const fireGradientId = useId().replace(/:/g, '');
   const [progress, setProgress] = useState<UserProgress | null>(null);
 
   useEffect(() => {
@@ -62,6 +63,10 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
         ? 'Best: 1 day'
         : `Best: ${longestStreak} days`;
 
+  const streakActive = currentStreak > 0 || appliedToday;
+  const streakStatusLabel = streakActive ? 'Streak active' : 'Streak inactive';
+  const streakMicrocopy = streakActive ? 'Keep it burning' : 'Apply today to spark it';
+
   const progressPercent = isMaxRank
     ? 100
     : next.minPoints === current.minPoints
@@ -81,12 +86,20 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
 
   return (
     <div
-      className="group relative mb-10 overflow-hidden rounded-3xl border border-white/50 bg-gradient-to-br from-[#ccd6eb] via-[#c2cfe8] to-[#b4c4e0] p-1 shadow-[0_24px_56px_-14px_rgba(30,27,75,0.13),0_0_0_1px_rgba(255,255,255,0.58)_inset] ring-1 ring-indigo-950/[0.06] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_28px_60px_-12px_rgba(49,46,129,0.18)]"
+      className="group relative mb-10 overflow-hidden rounded-3xl border border-white/55 bg-[linear-gradient(152deg,#d0d9ea_0%,#c6d2e8_38%,#bac7e3_68%,#aebfe0_100%)] p-1 shadow-[0_26px_58px_-14px_rgba(30,27,75,0.15),0_8px_42px_-16px_rgba(67,56,202,0.11),0_0_0_1px_rgba(255,255,255,0.62)_inset,0_1px_0_rgba(255,255,255,0.78)_inset] ring-1 ring-indigo-950/[0.07] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_30px_64px_-12px_rgba(49,46,129,0.2),0_0_56px_rgba(99,102,241,0.14),0_0_52px_rgba(245,185,66,0.07),0_0_0_1px_rgba(255,255,255,0.65)_inset]"
     >
-      <div className="pointer-events-none absolute -left-16 -top-12 h-44 w-56 rounded-full bg-indigo-500/[0.15] blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute -right-12 bottom-0 h-36 w-44 rounded-full bg-sky-500/[0.13] blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -left-16 -top-12 h-48 w-60 rounded-full bg-indigo-500/[0.18] blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -right-14 bottom-0 h-40 w-48 rounded-full bg-sky-500/[0.15] blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-[85%] -translate-x-1/2 rounded-[100%] bg-violet-400/[0.09] blur-2xl" aria-hidden />
+      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_95%_65%_at_50%_-5%,rgba(255,255,255,0.52),transparent_58%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_70%_55%_at_92%_88%,rgba(99,102,241,0.11),transparent_55%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_45%_40%_at_8%_75%,rgba(56,189,248,0.06),transparent_60%)]" aria-hidden />
 
       <div className="relative p-5 md:p-7">
+        <div
+          className="pointer-events-none absolute left-6 right-6 top-4 z-[1] h-px rounded-full bg-gradient-to-r from-transparent via-[#E9A93D]/28 to-transparent md:left-7 md:right-7 md:top-5"
+          aria-hidden
+        />
         <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-10">
 
           <div className="flex shrink-0 justify-center lg:justify-start">
@@ -95,9 +108,9 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
                 <div
                   className="flex flex-col items-center justify-center rounded-full px-3 py-3 text-center select-none"
                   style={{
-                    background: 'linear-gradient(165deg, rgba(255,255,255,0.97), rgba(241,245,253,0.9))',
+                    background: 'linear-gradient(165deg, rgba(255,255,255,0.98), rgba(241,245,253,0.94), rgba(238,242,255,0.88))',
                     boxShadow:
-                      'inset 0 1px 0 rgba(255,255,255,0.96), 0 10px 36px rgba(30,27,75,0.1), 0 0 28px rgba(99,102,241,0.08), 0 0 0 1px rgba(255,255,255,0.45)',
+                      'inset 0 1px 0 rgba(255,255,255,0.98), 0 12px 40px rgba(30,27,75,0.11), 0 0 32px rgba(99,102,241,0.12), 0 0 20px rgba(139,92,246,0.06), 0 0 0 1px rgba(255,255,255,0.5)',
                     minWidth: 92,
                     minHeight: 92,
                   }}
@@ -106,12 +119,12 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
                     Rank
                   </span>
                   <span
-                    className="font-black leading-none tabular-nums tracking-tight bg-gradient-to-br from-slate-900 via-indigo-700 to-violet-900 bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(15,23,42,0.12),0_0_24px_rgba(99,102,241,0.18)]"
+                    className="font-black leading-none tabular-nums tracking-tight bg-gradient-to-br from-slate-900 via-indigo-700 to-violet-900 bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(15,23,42,0.12),0_0_28px_rgba(99,102,241,0.2),0_0_36px_rgba(91,33,182,0.08)]"
                     style={{ fontSize: '2.45rem' }}
                   >
                     {progress.totalPoints}
                   </span>
-                  <span className="mt-0.5 text-[11px] font-medium leading-none text-slate-500">pts</span>
+                  <span className="mt-0.5 text-[11px] font-semibold leading-none tracking-wide text-slate-600">pts</span>
                   {!isMaxRank && progressPercent > 0 && (
                     <span className="mt-1.5 text-[9px] leading-none tabular-nums text-slate-500">
                       {Math.round(progressPercent)}%
@@ -135,8 +148,8 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
                 <RankIcon size={16} strokeWidth={2.2} className="shrink-0 opacity-90" />
                 {current.name}
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200/70 bg-white/75 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-700 shadow-sm shadow-indigo-500/10 ring-1 ring-indigo-100/80 backdrop-blur-sm">
-                <Zap size={11} className="text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.35)]" />
+              <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200/70 bg-white/78 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-700 shadow-sm shadow-indigo-500/12 ring-1 ring-indigo-100/85 backdrop-blur-sm transition-shadow duration-300 group-hover:border-[#E9A93D]/32 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.14),0_0_18px_rgba(245,185,66,0.1)] group-hover:ring-[#F5B942]/22">
+                <Zap size={11} className="text-indigo-600 drop-shadow-[0_0_8px_rgba(99,102,241,0.28),0_0_10px_rgba(233,169,61,0.2)]" />
                 Personal rank
               </span>
             </div>
@@ -148,9 +161,10 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
                 <p className="text-sm font-semibold text-emerald-700">{progressLine}</p>
               ) : (
                 <p className="text-sm text-slate-700">
-                  <span className="font-bold bg-gradient-to-r from-sky-600 via-indigo-600 to-violet-700 bg-clip-text text-transparent drop-shadow-[0_0_14px_rgba(59,130,246,0.2)]">
-                    {pointsToNext} pts
+                  <span className="font-bold bg-gradient-to-r from-sky-600 via-indigo-600 to-violet-700 bg-clip-text text-transparent drop-shadow-[0_0_14px_rgba(59,130,246,0.18)]">
+                    {pointsToNext}
                   </span>
+                  <span className="font-bold text-indigo-950/55"> pts</span>
                   {' '}
                   <span>to unlock </span>
                   <span className="font-semibold text-slate-800">{next.name}</span>
@@ -163,9 +177,9 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
               {POINT_BADGES.map(({ label, pts, icon: Icon }) => (
                 <div
                   key={label}
-                  className="inline-flex items-center gap-2 rounded-xl border border-indigo-200/55 bg-white/60 px-2.5 py-1.5 shadow-sm shadow-indigo-500/8 backdrop-blur-sm transition-all duration-200 hover:border-indigo-400/65 hover:bg-white/85 hover:shadow-md hover:shadow-indigo-500/12"
+                  className="inline-flex items-center gap-2 rounded-xl border border-indigo-200/55 bg-white/62 px-2.5 py-1.5 shadow-sm shadow-indigo-500/10 ring-0 backdrop-blur-sm transition-all duration-200 hover:border-[#E9A93D]/35 hover:bg-white/88 hover:shadow-[0_4px_20px_-2px_rgba(99,102,241,0.12),0_0_22px_rgba(245,185,66,0.1)] hover:ring-1 hover:ring-[#F5B942]/22"
                 >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-200/90 via-violet-100/80 to-slate-100/90 text-indigo-900 shadow-sm shadow-indigo-500/15">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-200/90 via-violet-100/80 to-[#FFF8ED]/95 text-indigo-900 shadow-sm shadow-indigo-500/15 ring-1 ring-[#E9A93D]/12">
                     <Icon size={14} strokeWidth={2} />
                   </span>
                   <span className="text-[11px] font-bold tabular-nums bg-gradient-to-r from-sky-600 to-indigo-700 bg-clip-text text-transparent">+{pts}</span>
@@ -175,35 +189,118 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
             </div>
           </div>
 
-          <div className="hidden w-px shrink-0 self-stretch bg-gradient-to-b from-transparent via-indigo-300/35 to-transparent lg:block" />
+          <div className="hidden w-px shrink-0 self-stretch lg:block [background:linear-gradient(to_bottom,transparent,rgba(99,102,241,0.28),rgba(139,92,246,0.14),rgba(56,189,248,0.1),transparent)]" />
 
-          <div className="shrink-0 rounded-2xl border border-indigo-200/45 bg-white/55 p-3.5 shadow-[0_12px_32px_-10px_rgba(49,46,129,0.14),0_0_0_1px_rgba(255,255,255,0.65)_inset] backdrop-blur-md lg:w-[13.25rem]">
-            <div className="mb-2.5 flex items-center gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-200/95 to-orange-200/80 text-orange-600 shadow-md shadow-orange-500/25 ring-1 ring-orange-300/55">
-                <Flame size={16} strokeWidth={2.2} className="drop-shadow-[0_0_10px_rgba(251,146,60,0.45)]" />
-              </span>
-              <p className="min-w-0 text-[10px] font-bold uppercase leading-tight tracking-[0.14em] text-indigo-900/60">
-                Application Streak
-              </p>
-            </div>
-            <p className="mb-2 text-xl font-black tabular-nums tracking-tight bg-gradient-to-br from-slate-900 via-indigo-800 to-violet-900 bg-clip-text text-transparent drop-shadow-[0_0_18px_rgba(99,102,241,0.15)]">
-              {streakLabel}
-            </p>
-            <p className="mb-2 text-[11px] font-semibold tabular-nums text-slate-600">
-              {appliedToday ? '1/1' : '0/1'}{' '}
-              <span className="font-medium text-slate-500">today</span>
-            </p>
-            <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-slate-300/80 shadow-inner ring-1 ring-slate-400/15">
+          <div
+            className={`streak-widget-shell group/streak relative shrink-0 overflow-hidden rounded-2xl border bg-white/55 p-3.5 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-0.5 lg:w-[13.25rem] ${
+              streakActive
+                ? 'border-[#F5B942]/45 ring-1 ring-[#FF8A3D]/28 ring-offset-0 streak-widget-active-glow hover:border-[#FF8A3D]/55 hover:ring-[#F5B942]/35 hover:shadow-[0_14px_36px_-10px_rgba(49,46,129,0.16),0_0_36px_rgba(249,115,22,0.2),0_0_52px_rgba(245,185,66,0.12),0_0_0_1px_rgba(255,255,255,0.68)_inset]'
+                : 'border-indigo-200/50 ring-1 ring-slate-200/60 shadow-[0_12px_32px_-10px_rgba(49,46,129,0.12),0_0_16px_rgba(245,185,66,0.04),0_0_0_1px_rgba(255,255,255,0.65)_inset] hover:shadow-[0_14px_32px_-10px_rgba(49,46,129,0.14)]'
+            }`}
+          >
+            <div
+              className={`pointer-events-none absolute left-3 right-3 top-3 h-px rounded-full opacity-90 ${
+                streakActive
+                  ? 'bg-gradient-to-r from-transparent via-[#FF8A3D]/45 to-transparent'
+                  : 'bg-gradient-to-r from-transparent via-[#F5B942]/18 to-transparent'
+              }`}
+              aria-hidden
+            />
+            {streakActive && (
               <div
-                className={`h-full rounded-full transition-all duration-500 ease-out ${
-                  appliedToday
-                    ? 'w-full bg-gradient-to-r from-amber-400 via-orange-500 to-orange-600 shadow-[0_0_12px_rgba(251,146,60,0.38),0_0_20px_rgba(249,115,22,0.15)]'
-                    : 'w-[12%] bg-gradient-to-r from-slate-400/80 to-slate-500/60 opacity-75'
-                }`}
+                className="pointer-events-none absolute -inset-px rounded-2xl opacity-[0.4]"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 90% 65% at 50% 0%, rgba(249,115,22,0.1), transparent 58%), radial-gradient(ellipse 55% 45% at 92% 42%, rgba(245,185,66,0.14), transparent 55%)',
+                }}
+                aria-hidden
               />
+            )}
+            <p className="relative mb-1 text-[10px] font-bold uppercase leading-tight tracking-[0.14em] text-indigo-900/60">
+              Application Streak
+            </p>
+            <p
+              className={`relative mb-2.5 text-[10px] font-semibold uppercase tracking-wider ${
+                streakActive ? 'text-[#c2410c]/85' : 'text-slate-500'
+              }`}
+            >
+              {streakStatusLabel}
+            </p>
+
+            <div className="relative -mx-0.5 mb-2 rounded-xl px-2 py-2.5 sm:py-3">
+              <div
+                className={`pointer-events-none absolute inset-0 rounded-xl ${
+                  streakActive
+                    ? 'bg-[radial-gradient(ellipse_115%_90%_at_45%_45%,rgba(255,255,255,0.65),rgba(255,247,237,0.35)_45%,transparent_72%)] opacity-95'
+                    : 'bg-[radial-gradient(ellipse_100%_85%_at_50%_50%,rgba(255,255,255,0.5),transparent_68%)] opacity-90'
+                }`}
+                aria-hidden
+              />
+              {streakActive && (
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-xl opacity-80"
+                  style={{
+                    background:
+                      'radial-gradient(circle 4.5rem at 92% 50%, rgba(249,115,22,0.14), transparent 70%)',
+                  }}
+                  aria-hidden
+                />
+              )}
+              <div className="relative flex min-h-[3.25rem] items-center justify-between gap-2">
+                <p
+                  className={`min-w-0 flex-1 leading-[1.1] tracking-tight ${
+                    streakActive
+                      ? 'bg-gradient-to-br from-[#9a3412] via-[#ea580c] to-[#fbbf24] bg-clip-text text-[1.35rem] font-black text-transparent drop-shadow-[0_1px_0_rgba(255,255,255,0.35),0_0_24px_rgba(249,115,22,0.22),0_0_40px_rgba(245,185,66,0.12)] sm:text-[1.55rem]'
+                      : 'bg-gradient-to-br from-slate-800 via-slate-700 to-slate-600 bg-clip-text text-[1.2rem] font-black text-transparent sm:text-[1.35rem]'
+                  }`}
+                >
+                  {streakLabel}
+                </p>
+                <div className="relative shrink-0" aria-hidden>
+                  <svg className="absolute h-0 w-0 overflow-hidden" aria-hidden>
+                    <defs>
+                      <linearGradient id={fireGradientId} x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#F5B942" />
+                        <stop offset="40%" stopColor="#FF8A3D" />
+                        <stop offset="100%" stopColor="#F97316" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  {streakActive ? (
+                    <div className="relative flex h-[3.35rem] w-[3.35rem] items-center justify-center rounded-full bg-gradient-to-b from-white/55 via-orange-50/35 to-[#ffedd5]/50 shadow-[0_6px_22px_rgba(249,115,22,0.28),0_0_0_1px_rgba(255,255,255,0.55)_inset,inset_0_-2px_8px_rgba(234,88,12,0.08)] ring-2 ring-[#FF8A3D]/40 transition-shadow duration-300 group-hover/streak:shadow-[0_8px_28px_rgba(249,115,22,0.38),0_0_28px_rgba(245,185,66,0.22),0_0_0_1px_rgba(255,255,255,0.6)_inset] sm:h-14 sm:w-14">
+                      <span className="streak-flame-aura pointer-events-none absolute inset-[-10px] rounded-full bg-gradient-to-br from-[#F5B942]/4 via-[#FF8A3D]/35 to-[#f97316]/25 blur-lg transition-opacity duration-300 group-hover/streak:opacity-90 group-hover/streak:blur-xl" />
+                      <span className="pointer-events-none absolute inset-[3px] rounded-full bg-gradient-to-t from-orange-200/25 to-transparent opacity-70" />
+                      <Flame
+                        strokeWidth={2}
+                        className="relative z-[1] h-10 w-10 text-white streak-flame-mega-active transition-transform duration-300 group-hover/streak:scale-[1.04] sm:h-11 sm:w-11"
+                        fill={`url(#${fireGradientId})`}
+                        stroke="#9a3412"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-[3.1rem] w-[3.1rem] items-center justify-center rounded-full bg-slate-100/95 ring-1 ring-slate-200/90 shadow-inner sm:h-[3.35rem] sm:w-[3.35rem]">
+                      <Flame
+                        strokeWidth={1.85}
+                        className="h-9 w-9 text-slate-400 sm:h-10 sm:w-10"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeOpacity={0.72}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            <p
+              className={`relative mb-1 text-[11px] font-medium leading-snug ${
+                streakActive ? 'text-[#9a3412]/88' : 'text-slate-500'
+              }`}
+            >
+              {streakMicrocopy}
+            </p>
             {bestLine && (
-              <p className="text-[10px] font-medium leading-snug text-slate-500">{bestLine}</p>
+              <p className="relative text-[10px] font-medium leading-snug text-[#6B5B3E]/90">{bestLine}</p>
             )}
           </div>
         </div>
