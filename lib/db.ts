@@ -7,6 +7,7 @@
 import { supabase } from './supabase';
 import { Job, JobStatus, Story, PointEvent, UserProgress, UserProfile } from './types';
 import { mergeHasResponseForSave } from './job-response';
+import { normalizeTrackerColumnOrder } from './trackerColumns';
 import { computeJobStreak } from './job-streak';
 import { now } from './utils';
 
@@ -18,6 +19,7 @@ interface ProfileRow {
   resume_file_name: string | null;
   resume_updated_at: string | null;
   applied_manual_sort: boolean | null;
+  tracker_column_order: unknown | null;
   created_at: string; updated_at: string;
 }
 
@@ -59,6 +61,12 @@ function rowToProfile(r: ProfileRow): UserProfile {
   return {
     id: r.id, fullName: r.full_name, email: r.email,
     appliedManualSort: r.applied_manual_sort ?? false,
+    trackerColumnOrder: (() => {
+      const raw = r.tracker_column_order;
+      if (raw == null) return undefined;
+      if (Array.isArray(raw) && raw.length === 0) return undefined;
+      return normalizeTrackerColumnOrder(raw);
+    })(),
     resumeText: r.resume_text ?? undefined,
     resumeFileName: r.resume_file_name ?? undefined,
     resumeUpdatedAt: r.resume_updated_at ?? undefined,
@@ -73,6 +81,7 @@ function profileToRow(p: UserProfile): ProfileRow {
     resume_file_name: p.resumeFileName ?? null,
     resume_updated_at: p.resumeUpdatedAt ?? null,
     applied_manual_sort: p.appliedManualSort ?? false,
+    tracker_column_order: p.trackerColumnOrder ?? null,
     created_at: p.createdAt, updated_at: p.updatedAt,
   };
 }

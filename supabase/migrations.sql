@@ -20,6 +20,7 @@ alter table public.user_profiles add column if not exists resume_text text;
 alter table public.user_profiles add column if not exists resume_file_name text;
 alter table public.user_profiles add column if not exists resume_updated_at timestamptz;
 alter table public.user_profiles add column if not exists applied_manual_sort boolean default false not null;
+alter table public.user_profiles add column if not exists tracker_column_order jsonb;
 
 -- applications (job tracker)
 create table if not exists public.applications (

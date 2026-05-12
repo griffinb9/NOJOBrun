@@ -2,9 +2,16 @@
 
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Plus } from 'lucide-react';
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
+import { GripVertical, Plus } from 'lucide-react';
 import { Job, JobStatus } from '@/lib/types';
 import JobCard from './JobCard';
+
+export type ColumnDragHandleProps = {
+  attributes: DraggableAttributes;
+  listeners: DraggableSyntheticListeners;
+  isDragging: boolean;
+};
 
 /** Per-lane orb gradient + outer glow (inline shadow for premium control) */
 const LANE_ORB: Record<
@@ -94,9 +101,11 @@ interface Props {
   jobs: Job[];
   onAddJob: () => void;
   onSelectJob: (job: Job) => void;
+  /** Header drag handle for column reorder (desktop Kanban only). */
+  columnDrag?: ColumnDragHandleProps;
 }
 
-export default function KanbanColumn({ column, jobs, onAddJob, onSelectJob }: Props) {
+export default function KanbanColumn({ column, jobs, onAddJob, onSelectJob, columnDrag }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   const orb = LANE_ORB[column.id] ?? LANE_ORB.ghosted;
@@ -106,17 +115,35 @@ export default function KanbanColumn({ column, jobs, onAddJob, onSelectJob }: Pr
   const emptyCopy = COL_EMPTY[column.id] ?? 'Drop here';
 
   return (
-    <div className="flex w-64 shrink-0 flex-col">
+    <div className="flex min-w-0 w-full shrink-0 flex-col">
       {/* ── Lane header (premium Kanban) ── */}
       <div
-        className="
+        className={`
           group/header mb-3 rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2.5
           shadow-sm shadow-slate-900/[0.04] ring-1 ring-slate-200/40 backdrop-blur-md
           transition-all duration-300 ease-out
           hover:border-slate-200 hover:bg-white/95 hover:shadow-md hover:shadow-slate-900/[0.06]
-        "
+          ${columnDrag?.isDragging ? 'border-indigo-300/70 ring-indigo-300/35 bg-indigo-50/30' : ''}
+        `}
       >
         <div className="flex items-center gap-2.5">
+          {columnDrag && (
+            <button
+              type="button"
+              className="
+                hidden md:inline-flex shrink-0 h-8 w-7 items-center justify-center rounded-lg
+                border border-transparent text-slate-400 cursor-grab touch-none
+                hover:border-slate-200/90 hover:bg-slate-50 hover:text-slate-600
+                active:cursor-grabbing
+              "
+              aria-label={`Reorder ${column.label} column`}
+              {...columnDrag.attributes}
+              {...columnDrag.listeners}
+              onClick={(e) => e.preventDefault()}
+            >
+              <GripVertical size={16} strokeWidth={2} className="pointer-events-none" />
+            </button>
+          )}
           {/* Status orb */}
           <div className="relative shrink-0">
             <div

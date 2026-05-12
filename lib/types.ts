@@ -9,6 +9,8 @@ export interface UserProfile {
    * When false, Applied defaults to newest application date first (see kanbanOrder).
    */
   appliedManualSort?: boolean;
+  /** Custom Job Tracker column order (status ids). Omitted = default KANBAN_COLUMNS order. */
+  trackerColumnOrder?: JobStatus[];
   resumeText?: string;
   /** Original uploaded file name when resume text came from a file; not stored on disk. */
   resumeFileName?: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -13,16 +13,17 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
-import { Plus, Upload, Target } from 'lucide-react';
+import { SortableContext, arrayMove, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { Plus, RotateCcw, Upload, Target } from 'lucide-react';
 import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { ensureSortOrders, sortJobsForColumn } from '@/lib/kanbanOrder';
+import { DEFAULT_TRACKER_COLUMN_IDS, normalizeTrackerColumnOrder } from '@/lib/trackerColumns';
 import { now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
 import { autoGhostStaleApplications } from '@/lib/autoGhost';
-import KanbanColumn from './KanbanColumn';
+import KanbanSortableColumn from './KanbanSortableColumn';
 import JobCard from './JobCard';
 import JobFormModal from './JobFormModal';
 import JobDetailModal from './JobDetailModal';
@@ -43,11 +44,26 @@ function detectCollision(args: Parameters<typeof pointerWithin>[0]) {
   return within.length > 0 ? within : closestCenter(args);
 }
 
+function useColumnReorderEnabled() {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const sync = () => setEnabled(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+  return enabled;
+}
+
 export default function KanbanBoard() {
   const { profile, refreshProfile } = useAuth();
   const appliedManualSort = profile?.appliedManualSort ?? false;
+  const columnReorderEnabled = useColumnReorderEnabled();
+  const [localColumnOrder, setLocalColumnOrder] = useState<JobStatus[]>(DEFAULT_TRACKER_COLUMN_IDS);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeJob, setActiveJob] = useState<Job | null>(null);
+  const [activeColumnId, setActiveColumnId] = useState<JobStatus | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addStatus, setAddStatus] = useState<JobStatus>('applied');
   const [detailJob, setDetailJob] = useState<Job | null>(null);
@@ -65,6 +81,20 @@ export default function KanbanBoard() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    setLocalColumnOrder(normalizeTrackerColumnOrder(profile?.trackerColumnOrder));
+  }, [profile?.trackerColumnOrder]);
+
+  const orderedColumns = useMemo(
+    () => localColumnOrder.map((id) => KANBAN_COLUMNS.find((c) => c.id === id)).filter(Boolean) as typeof KANBAN_COLUMNS,
+    [localColumnOrder],
+  );
+
+  const isCustomColumnOrder = useMemo(
+    () => localColumnOrder.some((id, i) => id !== DEFAULT_TRACKER_COLUMN_IDS[i]),
+    [localColumnOrder],
+  );
+
   const sensors = useSensors(
     // Mouse: start drag after 8 px movement
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -74,13 +104,37 @@ export default function KanbanBoard() {
   );
 
   function handleDragStart(e: DragStartEvent) {
+    if (e.active.data.current?.type === 'column') {
+      setActiveColumnId(e.active.id as JobStatus);
+      setActiveJob(null);
+      return;
+    }
+    setActiveColumnId(null);
     setActiveJob(jobs.find((j) => j.id === e.active.id) ?? null);
   }
 
   async function handleDragEnd(e: DragEndEvent) {
-    setActiveJob(null);
     const { active, over } = e;
+    setActiveJob(null);
+    setActiveColumnId(null);
     if (!over || active.id === over.id) return;
+
+    if (active.data.current?.type === 'column') {
+      const activeCol = active.id as JobStatus;
+      const overCol = over.id as JobStatus;
+      if (!localColumnOrder.includes(activeCol) || !localColumnOrder.includes(overCol)) return;
+      const fromIdx = localColumnOrder.indexOf(activeCol);
+      const toIdx = localColumnOrder.indexOf(overCol);
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+      const next = arrayMove(localColumnOrder, fromIdx, toIdx);
+      setLocalColumnOrder(next);
+      if (profile) {
+        const ts = now();
+        await db.saveProfile({ ...profile, trackerColumnOrder: next, updatedAt: ts });
+        await refreshProfile();
+      }
+      return;
+    }
 
     const draggedId = active.id as string;
     const overId    = over.id as string;
@@ -179,6 +233,14 @@ export default function KanbanBoard() {
     setAddOpen(true);
   }
 
+  async function resetColumnOrder() {
+    if (!profile) return;
+    const ts = now();
+    setLocalColumnOrder([...DEFAULT_TRACKER_COLUMN_IDS]);
+    await db.saveProfile({ ...profile, trackerColumnOrder: undefined, updatedAt: ts });
+    await refreshProfile();
+  }
+
   const sortedByOrder = (status: JobStatus) =>
     sortJobsForColumn(status, jobs, appliedManualSort);
 
@@ -253,6 +315,17 @@ export default function KanbanBoard() {
 
         {/* Right: action buttons */}
         <div className="relative flex items-center gap-2">
+          {columnReorderEnabled && isCustomColumnOrder && (
+            <button
+              type="button"
+              onClick={() => void resetColumnOrder()}
+              className="hidden md:inline-flex items-center gap-1.5 border border-transparent text-stone-500 px-2 py-2 rounded-xl text-xs font-medium hover:bg-stone-50 hover:border-stone-200 hover:text-stone-700 active:scale-[0.97] transition-all"
+              title="Restore default column order"
+            >
+              <RotateCcw size={14} strokeWidth={2} />
+              <span>Reset columns</span>
+            </button>
+          )}
           <button
             onClick={() => setImportOpen(true)}
             className="flex items-center gap-2 border border-stone-200 text-stone-600 px-2.5 md:px-3.5 py-2 rounded-xl text-sm font-medium hover:bg-stone-50 hover:border-stone-300 active:scale-[0.97] transition-all"
@@ -278,20 +351,31 @@ export default function KanbanBoard() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-4 p-6 min-w-max h-full">
-            {KANBAN_COLUMNS.map((col) => (
-              <KanbanColumn
-                key={col.id}
-                column={col}
-                jobs={sortedByOrder(col.id)}
-                onAddJob={() => openAdd(col.id)}
-                onSelectJob={setDetailJob}
-              />
-            ))}
-          </div>
+          <SortableContext items={localColumnOrder} strategy={horizontalListSortingStrategy}>
+            <div className="flex gap-4 p-6 min-w-max h-full">
+              {orderedColumns.map((col) => (
+                <KanbanSortableColumn
+                  key={col.id}
+                  column={col}
+                  jobs={sortedByOrder(col.id)}
+                  onAddJob={() => openAdd(col.id)}
+                  onSelectJob={setDetailJob}
+                  reorderEnabled={columnReorderEnabled}
+                />
+              ))}
+            </div>
+          </SortableContext>
 
           <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
             {activeJob && <JobCard job={activeJob} onSelect={() => {}} isDragging />}
+            {!activeJob && activeColumnId && (
+              <div className="flex w-64 flex-col rounded-2xl border border-indigo-200/80 bg-white/95 px-3 py-3 shadow-2xl shadow-indigo-500/20 ring-2 ring-indigo-300/40 backdrop-blur-md">
+                <span className="text-[13px] font-bold tracking-tight text-slate-800">
+                  {KANBAN_COLUMNS.find((c) => c.id === activeColumnId)?.label ?? activeColumnId}
+                </span>
+                <span className="mt-1 text-[11px] text-slate-400">Moving column…</span>
+              </div>
+            )}
           </DragOverlay>
         </DndContext>
       </div>

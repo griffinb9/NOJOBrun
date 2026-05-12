@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus, ChevronDown, FileText, StickyNote, Pencil, Check,
   X, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Job, JobStatus, KANBAN_COLUMNS, STATUS_COLORS, STATUS_LABELS } from '@/lib/types';
+import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { normalizeTrackerColumnOrder } from '@/lib/trackerColumns';
 import { now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
 import { autoGhostStaleApplications } from '@/lib/autoGhost';
@@ -36,6 +38,7 @@ const STATUS_DOT: Record<JobStatus, string> = {
 };
 
 export default function MobileJobs() {
+  const { profile } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
   const [loading, setLoading] = useState(true);
@@ -51,6 +54,19 @@ export default function MobileJobs() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const filterTabs = useMemo(() => {
+    const order = normalizeTrackerColumnOrder(profile?.trackerColumnOrder);
+    const statusTabs = order
+      .map((id) => FILTERS.find((f) => f.id === id))
+      .filter((f): f is (typeof FILTERS)[number] => Boolean(f));
+    return [FILTERS[0], ...statusTabs];
+  }, [profile?.trackerColumnOrder]);
+
+  const orderedKanbanColumns = useMemo(() => {
+    const order = normalizeTrackerColumnOrder(profile?.trackerColumnOrder);
+    return order.map((id) => KANBAN_COLUMNS.find((c) => c.id === id)).filter(Boolean) as typeof KANBAN_COLUMNS;
+  }, [profile?.trackerColumnOrder]);
 
   const filtered = filter === 'all' ? jobs : jobs.filter((j) => j.status === filter);
   const counts: Record<string, number> = { all: jobs.length };
@@ -83,7 +99,7 @@ export default function MobileJobs() {
 
         {/* Status filter tabs */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
-          {FILTERS.map(({ id, short }) => {
+          {filterTabs.map(({ id, short }) => {
             const count = counts[id] ?? 0;
             const active = filter === id;
             return (
@@ -156,7 +172,7 @@ export default function MobileJobs() {
               </button>
             </div>
             <div className="px-3 pt-2">
-              {KANBAN_COLUMNS.map((col) => {
+              {orderedKanbanColumns.map((col) => {
                 const isCurrent = col.id === statusPickerJob.status;
                 return (
                   <button
