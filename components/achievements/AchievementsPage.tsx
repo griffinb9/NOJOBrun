@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Send, PhoneCall, Mic, Trophy, MailCheck, Sparkles, BookOpen,
+  Send, PhoneCall, Mic, Trophy, MailCheck, Sparkles, BookOpen, Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '@/lib/db';
@@ -15,6 +15,7 @@ import AchievementBadge from '@/components/ui/AchievementBadge';
 
 const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
   jobs_applied:      Send,
+  max_apps_one_day: Zap,
   recruiter_screens: PhoneCall,
   interviews:        Mic,
   offers:            Trophy,
@@ -26,6 +27,7 @@ const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
 // color = ring/glow accent, light = gradient endpoint on ring
 const BADGE_COLORS: Record<string, { color: string; light: string }> = {
   jobs_applied:      { color: '#3B82F6', light: '#60A5FA' }, // blue
+  max_apps_one_day:  { color: '#D97706', light: '#FBBF24' }, // amber / gold
   recruiter_screens: { color: '#8B5CF6', light: '#A78BFA' }, // purple
   interviews:        { color: '#F43F5E', light: '#FB7185' }, // red-pink
   offers:            { color: '#10B981', light: '#34D399' }, // emerald
@@ -56,10 +58,11 @@ function formatTierName(name: string): string {
 }
 
 function getMicrocopy(id: string, progressPercent: number, isPlatinum: boolean): string {
-  if (isPlatinum) return 'Legend status. Fully unlocked.';
+  if (isPlatinum) return 'Platinum tier — fully unlocked.';
 
   const tables: Record<string, [string, string, string, string]> = {
     jobs_applied:      ['Start sending. Volume builds luck.', 'Keep the streak alive.', 'Consistency is the cheat code.', 'Apps don\'t apply themselves.'],
+    max_apps_one_day:  ['One focused day can move the needle.', 'Stack reps when you\'re in the zone.', 'High output, high reward.', 'Blitz mode: unlocked.'],
     recruiter_screens: ['Getting on their radar.', 'Past the initial filter.', 'Screens are a skill too.', 'Making the shortlist.'],
     interviews:        ['Your first interview is closer than you think.', 'Each rep sharpens the edge.', 'Getting comfortable in the room.', 'Almost in interview machine mode.'],
     offers:            ['Offer energy loading...', 'One offer changes everything.', 'Turning interviews into offers.', 'You\'re entering offer season.'],
@@ -78,6 +81,7 @@ export default function AchievementsPage() {
 
   useEffect(() => {
     async function load() {
+      await db.syncPublicGamificationSnapshot();
       const [jobs, pointEvents, stories] = await Promise.all([
         db.getJobs(),
         db.getPointEvents(),
@@ -119,7 +123,7 @@ export default function AchievementsPage() {
 }
 
 function AchievementCard({ achievement: a }: { achievement: ComputedAchievement }) {
-  const style      = TIER_STYLE[a.currentTier.name];
+  const style      = TIER_STYLE[a.currentTier.name] ?? TIER_STYLE['Bronze 1'];
   const isPlatinum = !a.nextTier;
   const Icon       = ACHIEVEMENT_ICONS[a.id] ?? Trophy;
   const palette    = BADGE_COLORS[a.id] ?? { color: '#6366F1', light: '#818CF8' };
@@ -128,6 +132,8 @@ function AchievementCard({ achievement: a }: { achievement: ComputedAchievement 
   const nextLabel = isPlatinum
     ? 'Maximum tier reached'
     : `${a.toNextTier} more ${a.toNextTier === 1 ? a.unit : `${a.unit}s`} to ${formatTierName(a.nextTier!.name)}`;
+
+  const countLabel = a.id === 'max_apps_one_day' ? 'Personal best (one day)' : null;
 
   return (
     <div
@@ -138,6 +144,7 @@ function AchievementCard({ achievement: a }: { achievement: ComputedAchievement 
         hover:shadow-[0_12px_32px_rgba(0,0,0,0.13)] hover:-translate-y-1
         transition-all duration-250
         border-t-[3px] ${style.borderTop}
+        ${a.id === 'max_apps_one_day' ? 'ring-1 ring-amber-200/70 shadow-[0_2px_12px_rgba(245,158,11,0.08)]' : ''}
         px-5 pt-8 pb-6 gap-0
       `}
     >
@@ -161,15 +168,24 @@ function AchievementCard({ achievement: a }: { achievement: ComputedAchievement 
       {/* Achievement name */}
       <h3 className="font-bold text-stone-800 text-sm leading-snug mt-4 px-2">{a.name}</h3>
 
+      {a.id === 'max_apps_one_day' && (
+        <p className="text-[11px] text-amber-700/90 font-medium leading-snug mt-1 px-2">{a.description}</p>
+      )}
+
       {/* Microcopy */}
       <p className="text-xs text-stone-400 leading-snug mt-1 px-2">{microcopy}</p>
 
       {/* Count */}
-      <div className="flex items-baseline gap-1.5 mt-4">
-        <span className="text-4xl font-bold text-stone-900 tabular-nums leading-none">{a.count}</span>
-        <span className="text-stone-400 text-sm leading-none">
-          {a.count === 1 ? a.unit : `${a.unit}s`}
-        </span>
+      <div className="flex flex-col items-center gap-1 mt-4">
+        {countLabel && (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80">{countLabel}</span>
+        )}
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-4xl font-bold text-stone-900 tabular-nums leading-none">{a.count}</span>
+          <span className="text-stone-400 text-sm leading-none">
+            {a.count === 1 ? a.unit : `${a.unit}s`}
+          </span>
+        </div>
       </div>
 
       {/* Progress / next tier */}

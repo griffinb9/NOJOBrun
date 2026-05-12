@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { isValidEmail } from '@/lib/utils';
+import { normalizeUsername, validateUsername } from '@/lib/username';
 
 type Mode = 'signin' | 'signup';
 
@@ -10,6 +11,7 @@ export default function AuthPage() {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<Mode>('signin');
   const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm]   = useState('');
@@ -25,6 +27,10 @@ export default function AuthPage() {
   function validate(): boolean {
     const errs: Record<string, string> = {};
     if (mode === 'signup' && !fullName.trim()) errs.fullName = 'Full name is required.';
+    if (mode === 'signup') {
+      const uErr = validateUsername(normalizeUsername(username));
+      if (uErr) errs.username = uErr;
+    }
     if (!email.trim() || !isValidEmail(email)) errs.email = 'Enter a valid email address.';
     if (password.length < 6) errs.password = 'Password must be at least 6 characters.';
     if (mode === 'signup' && password !== confirm) errs.confirm = 'Passwords do not match.';
@@ -42,7 +48,7 @@ export default function AuthPage() {
       const { error } = await signIn(email, password);
       if (error) setErrors({ form: error });
     } else {
-      const { error, needsConfirmation } = await signUp(email, password, fullName);
+      const { error, needsConfirmation } = await signUp(email, password, fullName, username);
       if (error) {
         setErrors({ form: error });
       } else if (needsConfirmation) {
@@ -129,6 +135,23 @@ export default function AuthPage() {
                     autoComplete="name"
                     className={inputCls(!!errors.fullName)}
                   />
+                </Field>
+              )}
+
+              {mode === 'signup' && (
+                <Field label="Username" error={errors.username}>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">@</span>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+                      placeholder="griffinboyle"
+                      autoComplete="username"
+                      className={`${inputCls(!!errors.username)} pl-8`}
+                    />
+                  </div>
+                  <p className="text-xs text-stone-400 mt-1">3–20 characters. Letters, numbers, _ and . only.</p>
                 </Field>
               )}
 

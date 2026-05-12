@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { UserProfile } from '@/lib/types';
+import { normalizeUsername, validateUsername } from '@/lib/username';
 import { now } from '@/lib/utils';
 
 interface Props {
@@ -13,11 +14,17 @@ interface Props {
 export default function ProfileSetupModal({ onComplete }: Props) {
   const { user } = useAuth();
   const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   async function save() {
     if (!fullName.trim()) { setError('Full name is required.'); return; }
+    const uNorm = normalizeUsername(username);
+    const uErr = validateUsername(uNorm);
+    if (uErr) { setError(uErr); return; }
+    const ok = await db.isUsernameAvailable(uNorm);
+    if (!ok) { setError('That username is already taken.'); return; }
     if (!user) return;
     setSaving(true);
     setError('');
@@ -26,6 +33,7 @@ export default function ProfileSetupModal({ onComplete }: Props) {
       id: user.id,
       fullName: fullName.trim(),
       email: user.email ?? '',
+      username: uNorm,
       createdAt: ts,
       updatedAt: ts,
     };
@@ -56,23 +64,43 @@ export default function ProfileSetupModal({ onComplete }: Props) {
 
         <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-8">
           <h1 className="text-xl font-bold text-stone-800 mb-1">One last thing</h1>
-          <p className="text-stone-400 text-sm mb-6">What should we call you?</p>
+          <p className="text-stone-400 text-sm mb-6">Create your profile to get started.</p>
 
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1.5">Full Name</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => { setFullName(e.target.value); setError(''); }}
-              onKeyDown={handleKey}
-              placeholder="Griffin Boyle"
-              autoFocus
-              className={`w-full border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition-colors ${
-                error ? 'border-red-300 bg-red-50' : 'border-stone-200'
-              }`}
-            />
-            {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">Full Name</label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => { setFullName(e.target.value); setError(''); }}
+                onKeyDown={handleKey}
+                placeholder="Griffin Boyle"
+                autoFocus
+                className={`w-full border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition-colors ${
+                  error ? 'border-red-300 bg-red-50' : 'border-stone-200'
+                }`}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">Username</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">@</span>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '')); setError(''); }}
+                  onKeyDown={handleKey}
+                  placeholder="griffinboyle"
+                  className={`w-full border rounded-xl pl-8 pr-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition-colors ${
+                    error ? 'border-red-300 bg-red-50' : 'border-stone-200'
+                  }`}
+                />
+              </div>
+              <p className="text-xs text-stone-400 mt-1">3–20 characters. Shown as @handle to friends.</p>
+            </div>
           </div>
+
+          {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
 
           <button
             onClick={save}

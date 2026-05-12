@@ -19,6 +19,7 @@ import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { UserProgress } from '@/lib/types';
 import { isValidEmail, now } from '@/lib/utils';
+import { formatUsernameAt, normalizeUsername, validateUsername } from '@/lib/username';
 import {
   RESUME_MAX_CHARS,
   RESUME_TXT_MAX_BYTES,
@@ -37,7 +38,13 @@ export default function ProfilePage() {
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [accountErrors, setAccountErrors] = useState<{ fullName?: string; email?: string }>({});
+  const [usernameDraft, setUsernameDraft] = useState('');
+  const [displayNameDraft, setDisplayNameDraft] = useState('');
+  const [accountErrors, setAccountErrors] = useState<{
+    fullName?: string;
+    email?: string;
+    username?: string;
+  }>({});
 
   const [draftText, setDraftText] = useState('');
   /** Set when a file upload succeeds; cleared when the user edits the textarea. */
@@ -57,6 +64,8 @@ export default function ProfilePage() {
     if (!profile) return;
     setFullName(profile.fullName ?? '');
     setEmail(profile.email ?? '');
+    setUsernameDraft(profile.username ?? '');
+    setDisplayNameDraft(profile.displayName ?? '');
     setDraftText(profile.resumeText ?? '');
     setFileNameFromUpload(undefined);
     setAccountErrors({});
@@ -80,8 +89,13 @@ export default function ProfilePage() {
     const errs: typeof accountErrors = {};
     const nameTrimmed = fullName.trim();
     const emailTrimmed = email.trim();
+    const uNorm = normalizeUsername(usernameDraft);
     if (!nameTrimmed) errs.fullName = 'Full name is required.';
     if (emailTrimmed && !isValidEmail(emailTrimmed)) errs.email = 'Enter a valid email address.';
+    if (uNorm) {
+      const uErr = validateUsername(uNorm);
+      if (uErr) errs.username = uErr;
+    }
     if (Object.keys(errs).length > 0) {
       setAccountErrors(errs);
       return;
@@ -91,13 +105,25 @@ export default function ProfilePage() {
     setAccountErrors({});
     const ts = now();
     try {
+      if (uNorm && uNorm !== (p.username ?? '')) {
+        const ok = await db.isUsernameAvailable(uNorm);
+        if (!ok) {
+          setAccountErrors({ username: 'That username is already taken.' });
+          setSavingAccount(false);
+          return;
+        }
+      }
       await db.saveProfile({
         id: p.id,
         fullName: nameTrimmed,
         email: emailTrimmed.toLowerCase() || p.email || u.email || '',
+        username: uNorm || undefined,
+        displayName: displayNameDraft.trim() || undefined,
         resumeText: p.resumeText,
         resumeFileName: p.resumeFileName,
         resumeUpdatedAt: p.resumeUpdatedAt,
+        appliedManualSort: p.appliedManualSort,
+        trackerColumnOrder: p.trackerColumnOrder,
         createdAt: p.createdAt,
         updatedAt: ts,
       }, { omitResumeOnSchemaError: true });
@@ -216,6 +242,10 @@ export default function ProfilePage() {
         id: p.id,
         fullName: p.fullName,
         email: p.email,
+        username: p.username,
+        displayName: p.displayName,
+        appliedManualSort: p.appliedManualSort,
+        trackerColumnOrder: p.trackerColumnOrder,
         resumeText: text || undefined,
         resumeFileName: text ? resumeFileName : undefined,
         resumeUpdatedAt: text ? ts : undefined,
@@ -280,6 +310,21 @@ export default function ProfilePage() {
         </p>
       </div>
 
+      {!p.username?.trim() && (
+        <div className="mb-6 rounded-2xl border border-violet-200 bg-violet-50/90 px-4 py-3 text-sm text-violet-950 shadow-sm">
+          <p className="font-semibold text-violet-900">Set a username to unlock Friends</p>
+          <p className="text-violet-800/90 mt-1">
+            Friends only see your rank, points, streaks, and achievements — never companies, salaries, or interview prep.
+          </p>
+          <Link
+            href="/friends"
+            className="inline-flex mt-2 text-sm font-semibold text-violet-700 hover:text-violet-900"
+          >
+            Friends page →
+          </Link>
+        </div>
+      )}
+
       <div className="space-y-6">
         {/* Account */}
         <section className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
@@ -309,6 +354,47 @@ export default function ProfilePage() {
                 {accountErrors.fullName && (
                   <p className="text-xs text-red-500 mt-1">{accountErrors.fullName}</p>
                 )}
+              </div>
+              <div className="sm:col-span-2">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-stone-500 mb-1">
+                  Username
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">@</span>
+                  <input
+                    type="text"
+                    value={usernameDraft}
+                    onChange={(e) => {
+                      setUsernameDraft(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''));
+                      setAccountErrors((a) => ({ ...a, username: undefined }));
+                    }}
+                    placeholder="yourhandle"
+                    autoComplete="username"
+                    className={`w-full border rounded-xl pl-8 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200 ${
+                      accountErrors.username ? 'border-red-300' : 'border-stone-200'
+                    }`}
+                  />
+                </div>
+                {p.username?.trim() ? (
+                  <p className="text-xs text-stone-400 mt-1">Public: {formatUsernameAt(p.username)}</p>
+                ) : (
+                  <p className="text-xs text-stone-400 mt-1">Required for Friends. Lowercase, 3–20 characters.</p>
+                )}
+                {accountErrors.username && (
+                  <p className="text-xs text-red-500 mt-1">{accountErrors.username}</p>
+                )}
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-xs font-medium text-stone-500 mb-1 block">
+                  Display name <span className="text-stone-400 font-normal">(optional, friends)</span>
+                </label>
+                <input
+                  type="text"
+                  value={displayNameDraft}
+                  onChange={(e) => setDisplayNameDraft(e.target.value)}
+                  placeholder="How friends see you"
+                  className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
+                />
               </div>
               <div className="sm:col-span-2">
                 <label className="flex items-center gap-1.5 text-xs font-medium text-stone-500 mb-1">

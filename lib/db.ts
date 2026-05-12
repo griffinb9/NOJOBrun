@@ -5,16 +5,31 @@
  */
 
 import { supabase } from './supabase';
-import { Job, JobStatus, Story, PointEvent, UserProgress, UserProfile } from './types';
+import {
+  Job,
+  JobStatus,
+  Story,
+  PointEvent,
+  UserProgress,
+  UserProfile,
+  Friendship,
+  FriendshipStatus,
+  PublicFriendCard,
+  PublicFriendSearchResult,
+  IncomingFriendPreview,
+} from './types';
 import { mergeHasResponseForSave } from './job-response';
 import { normalizeTrackerColumnOrder } from './trackerColumns';
 import { computeJobStreak } from './job-streak';
+import { maxApplicationsInOneDay, countUnlockedAchievements } from './friend-stats';
 import { now } from './utils';
 
 // ── Row shapes (snake_case from Postgres) ────────────────────────────────────
 
 interface ProfileRow {
   id: string; full_name: string; email: string;
+  username: string | null;
+  display_name: string | null;
   resume_text: string | null;
   resume_file_name: string | null;
   resume_updated_at: string | null;
@@ -52,7 +67,18 @@ interface ProgressRow {
   current_streak: number | null;
   longest_streak: number | null;
   last_streak_date: string | null;
+  max_apps_one_day: number | null;
+  achievements_unlocked_count: number | null;
   created_at: string; updated_at: string;
+}
+
+interface FriendshipRow {
+  id: string;
+  requester_id: string;
+  receiver_id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // ── Mappers ──────────────────────────────────────────────────────────────────
@@ -60,6 +86,8 @@ interface ProgressRow {
 function rowToProfile(r: ProfileRow): UserProfile {
   return {
     id: r.id, fullName: r.full_name, email: r.email,
+    username: r.username?.trim() ? r.username.trim().toLowerCase() : undefined,
+    displayName: r.display_name?.trim() ? r.display_name.trim() : undefined,
     appliedManualSort: r.applied_manual_sort ?? false,
     trackerColumnOrder: (() => {
       const raw = r.tracker_column_order;
@@ -77,6 +105,8 @@ function rowToProfile(r: ProfileRow): UserProfile {
 function profileToRow(p: UserProfile): ProfileRow {
   return {
     id: p.id, full_name: p.fullName, email: p.email,
+    username: p.username?.trim() ? p.username.trim().toLowerCase() : null,
+    display_name: p.displayName?.trim() ? p.displayName.trim() : null,
     resume_text: p.resumeText ?? null,
     resume_file_name: p.resumeFileName ?? null,
     resume_updated_at: p.resumeUpdatedAt ?? null,
@@ -87,11 +117,22 @@ function profileToRow(p: UserProfile): ProfileRow {
 }
 
 /** Upsert payload without resume_* columns — for DBs that have not run the resume migration yet. */
-function profileToMinimalRow(p: UserProfile): Pick<ProfileRow, 'id' | 'full_name' | 'email' | 'created_at' | 'updated_at'> {
+function profileToMinimalRow(p: UserProfile): Pick<
+  ProfileRow,
+  | 'id'
+  | 'full_name'
+  | 'email'
+  | 'username'
+  | 'display_name'
+  | 'created_at'
+  | 'updated_at'
+> {
   return {
     id: p.id,
     full_name: p.fullName,
     email: p.email,
+    username: p.username?.trim() ? p.username.trim().toLowerCase() : null,
+    display_name: p.displayName?.trim() ? p.displayName.trim() : null,
     created_at: p.createdAt,
     updated_at: p.updatedAt,
   };
@@ -204,6 +245,8 @@ function rowToProgress(r: ProgressRow): UserProgress {
     currentStreak: r.current_streak ?? 0,
     longestStreak: r.longest_streak ?? 0,
     lastStreakDate: r.last_streak_date ?? undefined,
+    maxAppsOneDay: r.max_apps_one_day ?? 0,
+    achievementsUnlockedCount: r.achievements_unlocked_count ?? 0,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
@@ -213,8 +256,20 @@ const DEFAULT_PROGRESS: UserProgress = {
   weeklyPoints: 0, weeklyGoal: 50,
   weekStartDate: now(), lastActivityDate: now(),
   currentStreak: 0, longestStreak: 0, lastStreakDate: undefined,
+  maxAppsOneDay: 0, achievementsUnlockedCount: 0,
   createdAt: now(), updatedAt: now(),
 };
+
+function rowToFriendship(r: FriendshipRow): Friendship {
+  return {
+    id: r.id,
+    requesterId: r.requester_id,
+    receiverId: r.receiver_id,
+    status: r.status as FriendshipStatus,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -379,22 +434,35 @@ export const db = {
   },
 
   /**
-   * Recompute apply streak from tracker data and persist to user_progress when values change.
+   * Recompute apply streak + friend-visible aggregates from tracker data and persist when values change.
    */
   async syncJobStreakFromJobs(jobs: Job[], progressHint?: UserProgress): Promise<UserProgress> {
     const progress = progressHint ?? await db.getUserProgress();
+    const userId = await uid();
+    const [{ data: evRows }, { data: stRows }] = await Promise.all([
+      supabase.from('point_events').select('*').eq('user_id', userId),
+      supabase.from('stories').select('*').eq('user_id', userId),
+    ]);
+    const events = (evRows ?? []).map((r) => rowToPointEvent(r as PointEventRow));
+    const stories = (stRows ?? []).map((r) => rowToStory(r as StoryRow));
     const s = computeJobStreak(jobs);
+    const maxDay = maxApplicationsInOneDay(jobs);
+    const achUnlocked = countUnlockedAchievements(jobs, events, stories);
     const next: UserProgress = {
       ...progress,
       currentStreak: s.currentStreak,
       longestStreak: s.longestStreak,
       lastStreakDate: s.lastStreakDate ?? undefined,
+      maxAppsOneDay: maxDay,
+      achievementsUnlockedCount: achUnlocked,
       updatedAt: now(),
     };
     const same =
       (progress.currentStreak ?? 0) === s.currentStreak
       && (progress.longestStreak ?? 0) === s.longestStreak
-      && (progress.lastStreakDate ?? null) === (s.lastStreakDate ?? null);
+      && (progress.lastStreakDate ?? null) === (s.lastStreakDate ?? null)
+      && (progress.maxAppsOneDay ?? 0) === maxDay
+      && (progress.achievementsUnlockedCount ?? 0) === achUnlocked;
     if (!same) await db.saveUserProgress(next);
     return same ? progress : next;
   },
@@ -413,6 +481,8 @@ export const db = {
       current_streak: progress.currentStreak ?? 0,
       longest_streak: progress.longestStreak ?? 0,
       last_streak_date: progress.lastStreakDate ?? null,
+      max_apps_one_day: progress.maxAppsOneDay ?? 0,
+      achievements_unlocked_count: progress.achievementsUnlockedCount ?? 0,
       created_at: progress.createdAt,
       updated_at: ts,
     }, { onConflict: 'user_id' });
@@ -429,8 +499,192 @@ export const db = {
       weekly_points: 0, weekly_goal: 50,
       week_start_date: ts, last_activity_date: ts,
       current_streak: 0, longest_streak: 0, last_streak_date: null,
+      max_apps_one_day: 0, achievements_unlocked_count: 0,
       created_at: ts, updated_at: ts,
     }, { onConflict: 'user_id', ignoreDuplicates: true });
     if (error) throw new Error(error.message);
+  },
+
+  /** Recompute streak + friend-visible aggregates (call after point events change). */
+  async syncPublicGamificationSnapshot(): Promise<void> {
+    const jobs = await db.getJobs();
+    await db.syncJobStreakFromJobs(jobs);
+  },
+
+  async isUsernameAvailable(username: string): Promise<boolean> {
+    const { data, error } = await supabase.rpc('is_username_available', { p_username: username });
+    if (error) return false;
+    return data === true;
+  },
+
+  async searchProfilesByUsername(term: string): Promise<PublicFriendSearchResult[]> {
+    const { data, error } = await supabase.rpc('search_profiles_by_username', {
+      p_term: term,
+      p_limit: 20,
+    });
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as {
+      id: string;
+      username: string;
+      display_name: string | null;
+      full_name: string;
+      current_rank: string;
+      total_points: number;
+    }[];
+    return rows.map((r) => ({
+      id: r.id,
+      username: r.username,
+      displayName: r.display_name,
+      fullName: r.full_name,
+      currentRank: r.current_rank,
+      totalPoints: r.total_points,
+    }));
+  },
+
+  async listFriendships(): Promise<Friendship[]> {
+    const { data, error } = await supabase
+      .from('friendships')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => rowToFriendship(r as FriendshipRow));
+  },
+
+  async sendFriendRequest(receiverId: string): Promise<void> {
+    const me = await uid();
+    if (receiverId === me) throw new Error('You cannot add yourself.');
+    const ts = now();
+    const { data: outMe } = await supabase
+      .from('friendships')
+      .select('*')
+      .eq('requester_id', me)
+      .eq('receiver_id', receiverId)
+      .maybeSingle();
+    const { data: inMe } = await supabase
+      .from('friendships')
+      .select('*')
+      .eq('requester_id', receiverId)
+      .eq('receiver_id', me)
+      .maybeSingle();
+    const out = outMe as FriendshipRow | null;
+    const inc = inMe as FriendshipRow | null;
+    if (out?.status === 'accepted' || inc?.status === 'accepted') {
+      throw new Error('You are already friends with this user.');
+    }
+    if (out?.status === 'pending') throw new Error('Friend request already sent.');
+    if (inc?.status === 'pending') {
+      const { error } = await supabase
+        .from('friendships')
+        .update({ status: 'accepted', updated_at: ts })
+        .eq('id', inc.id);
+      if (error) throw new Error(error.message);
+      return;
+    }
+    const { error } = await supabase.from('friendships').insert({
+      requester_id: me,
+      receiver_id: receiverId,
+      status: 'pending',
+      created_at: ts,
+      updated_at: ts,
+    });
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error('A pending or accepted request already exists with this user.');
+      }
+      throw new Error(error.message);
+    }
+  },
+
+  async respondToFriendRequest(friendshipId: string, status: 'accepted' | 'declined'): Promise<void> {
+    const me = await uid();
+    const ts = now();
+    const { data: row, error: fetchErr } = await supabase
+      .from('friendships')
+      .select('*')
+      .eq('id', friendshipId)
+      .single();
+    if (fetchErr || !row) throw new Error('Request not found.');
+    const f = row as FriendshipRow;
+    if (f.receiver_id !== me) throw new Error('Only the recipient can respond to this request.');
+    if (f.status !== 'pending') throw new Error('This request is no longer pending.');
+    const { error } = await supabase
+      .from('friendships')
+      .update({ status, updated_at: ts })
+      .eq('id', friendshipId);
+    if (error) throw new Error(error.message);
+  },
+
+  async deleteFriendship(friendshipId: string): Promise<void> {
+    const me = await uid();
+    const { data: row } = await supabase.from('friendships').select('*').eq('id', friendshipId).maybeSingle();
+    if (!row) return;
+    const f = row as FriendshipRow;
+    if (f.requester_id !== me && f.receiver_id !== me) throw new Error('Not allowed.');
+    const { error } = await supabase.from('friendships').delete().eq('id', friendshipId);
+    if (error) throw new Error(error.message);
+  },
+
+  async getAcceptedFriendPublicCards(): Promise<PublicFriendCard[]> {
+    const me = await uid();
+    const { data: rels, error } = await supabase.from('friendships').select('*').eq('status', 'accepted');
+    if (error) throw new Error(error.message);
+    const ids = (rels ?? [])
+      .map((r) => {
+        const row = r as FriendshipRow;
+        return row.requester_id === me ? row.receiver_id : row.requester_id;
+      })
+      .filter(Boolean);
+    if (ids.length === 0) return [];
+    const { data: cards, error: e2 } = await supabase.rpc('get_accepted_friend_public_cards', {
+      p_friend_ids: ids,
+    });
+    if (e2) throw new Error(e2.message);
+    const rows = (cards ?? []) as {
+      user_id: string;
+      username: string;
+      display_name: string | null;
+      full_name: string;
+      current_rank: string;
+      total_points: number;
+      current_streak: number;
+      longest_streak: number;
+      max_apps_one_day: number;
+      achievements_unlocked_count: number;
+    }[];
+    return rows.map((r) => ({
+      userId: r.user_id,
+      username: r.username,
+      displayName: r.display_name,
+      fullName: r.full_name,
+      currentRank: r.current_rank,
+      totalPoints: r.total_points,
+      achievementsUnlockedCount: r.achievements_unlocked_count,
+      longestStreak: r.longest_streak,
+      currentStreak: r.current_streak,
+      maxAppsOneDay: r.max_apps_one_day,
+    }));
+  },
+
+  async listIncomingFriendRequestPreviews(): Promise<IncomingFriendPreview[]> {
+    const { data, error } = await supabase.rpc('get_pending_incoming_friend_requests', {});
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as {
+      friendship_id: string;
+      requester_id: string;
+      username: string | null;
+      display_name: string | null;
+      full_name: string;
+      current_rank: string;
+      total_points: number;
+    }[];
+    return rows.map((r) => ({
+      friendshipId: r.friendship_id,
+      requesterId: r.requester_id,
+      username: r.username,
+      displayName: r.display_name,
+      fullName: r.full_name,
+      currentRank: r.current_rank,
+      totalPoints: r.total_points,
+    }));
   },
 };

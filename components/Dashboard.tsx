@@ -172,6 +172,21 @@ export default function Dashboard() {
 
       <div className="relative p-6 md:p-10 max-w-5xl mx-auto w-full">
 
+        {!profile.username?.trim() && (
+          <div className="mb-6 rounded-2xl border border-indigo-200/80 bg-white/90 px-4 py-3 text-sm text-slate-800 shadow-sm shadow-indigo-500/10 backdrop-blur-sm">
+            <p className="font-semibold text-indigo-900">Choose a username to unlock Friends</p>
+            <p className="text-slate-600 mt-1 text-xs leading-relaxed">
+              Your applications and prep stay private. Friends only see rank, points, streaks, and achievements.
+            </p>
+            <Link
+              href="/profile"
+              className="inline-flex mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-800"
+            >
+              Set username in Profile →
+            </Link>
+          </div>
+        )}
+
         {/* ── Header ──────────────────────────────────────────────── */}
         <div className="relative flex flex-wrap items-start justify-between gap-x-4 gap-y-3 mb-8 md:mb-10">
           <div

@@ -5,6 +5,7 @@ import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { db } from './db';
 import { UserProfile } from './types';
+import { normalizeUsername, validateUsername } from './username';
 import { now } from './utils';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -16,7 +17,12 @@ interface AuthContextType {
   /** true while session/profile are being resolved */
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null; needsConfirmation: boolean }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+    username: string,
+  ) => Promise<{ error: string | null; needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -85,12 +91,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // This is used as a fallback when the DB is unavailable (e.g. tables not yet created).
     const buildFallback = (): UserProfile => {
       const metaName = (u.user_metadata?.full_name as string | undefined)?.trim() ?? '';
+      const metaUser = normalizeUsername((u.user_metadata?.username as string | undefined) ?? '');
       const legacy   = readLegacyProfile();
       const ts = now();
       return {
         id: u.id,
         fullName: metaName || legacy?.fullName?.trim() || '',
         email:    legacy?.email || u.email || '',
+        username: metaUser || undefined,
         createdAt: ts, updatedAt: ts,
       };
     };
@@ -156,14 +164,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   }
 
-  async function signUp(email: string, password: string, fullName: string): Promise<{ error: string | null; needsConfirmation: boolean }> {
+  async function signUp(
+    email: string,
+    password: string,
+    fullName: string,
+    username: string,
+  ): Promise<{ error: string | null; needsConfirmation: boolean }> {
+    const uNorm = normalizeUsername(username);
+    const uErr = validateUsername(uNorm);
+    if (uErr) return { error: uErr, needsConfirmation: false };
+    const available = await db.isUsernameAvailable(uNorm);
+    if (!available) return { error: 'That username is already taken.', needsConfirmation: false };
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        // Persist fullName in auth metadata so loadProfile can auto-create the
-        // profile row even after an email-confirmation redirect
-        data: { full_name: fullName.trim() },
+        data: { full_name: fullName.trim(), username: uNorm },
       },
     });
     if (error) return { error: error.message, needsConfirmation: false };
@@ -185,8 +202,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!needsConfirmation) {
       const ts = now();
       const newProfile: UserProfile = {
-        id: u.id, fullName: fullName.trim(), email: u.email ?? email,
-        createdAt: ts, updatedAt: ts,
+        id: u.id,
+        fullName: fullName.trim(),
+        email: u.email ?? email,
+        username: uNorm,
+        createdAt: ts,
+        updatedAt: ts,
       };
       try {
         await db.saveProfile(newProfile, { omitResumeOnSchemaError: true });

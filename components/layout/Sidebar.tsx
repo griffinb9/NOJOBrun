@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Kanban, BookOpen, Trophy, Settings, LogOut, Loader2, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Kanban, BookOpen, Trophy, Settings, LogOut, Loader2, UserCircle, Users } from 'lucide-react';
 import SettingsModal from '@/components/ui/SettingsModal';
 import { useAuth } from '@/lib/auth';
 import { useState } from 'react';
@@ -11,6 +11,7 @@ const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/tracker', label: 'Job Tracker', icon: Kanban },
   { href: '/achievements', label: 'Achievements', icon: Trophy },
+  { href: '/friends', label: 'Friends', icon: Users },
   { href: '/story-bank', label: 'STAR Formatter', icon: BookOpen },
 ];
 

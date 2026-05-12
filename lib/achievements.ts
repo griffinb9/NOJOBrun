@@ -3,8 +3,8 @@ import { PointEvent, Story, Job } from './types';
 export type TierName =
   | 'Bronze 1' | 'Bronze 2' | 'Bronze 3'
   | 'Silver 1' | 'Silver 2' | 'Silver 3'
-  | 'Gold 1'   | 'Gold 2'   | 'Gold 3'
-  | 'Platinum';
+  | 'Gold 1' | 'Gold 2' | 'Gold 3'
+  | 'Platinum 1' | 'Platinum 2' | 'Platinum 3';
 
 export interface Tier {
   name: TierName;
@@ -46,8 +46,20 @@ export const TIER_STYLE: Record<string, TierStyle> = {
   'Gold 1':   { badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', bar: 'bg-yellow-400', accent: 'text-yellow-700', borderTop: 'border-t-yellow-400', iconBg: 'bg-yellow-100', iconColor: 'text-yellow-600' },
   'Gold 2':   { badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', bar: 'bg-yellow-400', accent: 'text-yellow-700', borderTop: 'border-t-yellow-400', iconBg: 'bg-yellow-100', iconColor: 'text-yellow-600' },
   'Gold 3':   { badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', bar: 'bg-yellow-500', accent: 'text-yellow-700', borderTop: 'border-t-yellow-500', iconBg: 'bg-yellow-100', iconColor: 'text-yellow-700' },
-  'Platinum': { badge: 'bg-violet-100 text-violet-700 border-violet-200', bar: 'bg-violet-500', accent: 'text-violet-700', borderTop: 'border-t-violet-500', iconBg: 'bg-violet-100', iconColor: 'text-violet-600' },
+  'Platinum 1': { badge: 'bg-violet-100 text-violet-700 border-violet-200', bar: 'bg-violet-500', accent: 'text-violet-700', borderTop: 'border-t-violet-500', iconBg: 'bg-violet-100', iconColor: 'text-violet-600' },
+  'Platinum 2': { badge: 'bg-violet-100 text-violet-800 border-violet-300', bar: 'bg-violet-600', accent: 'text-violet-800', borderTop: 'border-t-violet-600', iconBg: 'bg-violet-100', iconColor: 'text-violet-700' },
+  'Platinum 3': { badge: 'bg-violet-100 text-violet-900 border-violet-300', bar: 'bg-violet-600', accent: 'text-violet-900', borderTop: 'border-t-violet-600', iconBg: 'bg-violet-100', iconColor: 'text-violet-800' },
 };
+
+function platinumThree(gold3Min: number, platinum1Min: number): Tier[] {
+  const span = Math.max(1, platinum1Min - gold3Min);
+  const step = Math.max(1, Math.round(span / 3));
+  return [
+    { name: 'Platinum 1', min: platinum1Min },
+    { name: 'Platinum 2', min: platinum1Min + step },
+    { name: 'Platinum 3', min: platinum1Min + step * 2 },
+  ];
+}
 
 const TIERS_JOBS_APPLIED: Tier[] = [
   { name: 'Bronze 1', min: 0 },
@@ -59,7 +71,7 @@ const TIERS_JOBS_APPLIED: Tier[] = [
   { name: 'Gold 1',   min: 150 },
   { name: 'Gold 2',   min: 200 },
   { name: 'Gold 3',   min: 300 },
-  { name: 'Platinum', min: 500 },
+  ...platinumThree(300, 500),
 ];
 
 const TIERS_RECRUITER_SCREENS: Tier[] = [
@@ -72,7 +84,7 @@ const TIERS_RECRUITER_SCREENS: Tier[] = [
   { name: 'Gold 1',   min: 15 },
   { name: 'Gold 2',   min: 20 },
   { name: 'Gold 3',   min: 30 },
-  { name: 'Platinum', min: 50 },
+  ...platinumThree(30, 50),
 ];
 
 const TIERS_INTERVIEWS: Tier[] = [
@@ -85,7 +97,7 @@ const TIERS_INTERVIEWS: Tier[] = [
   { name: 'Gold 1',   min: 15 },
   { name: 'Gold 2',   min: 20 },
   { name: 'Gold 3',   min: 30 },
-  { name: 'Platinum', min: 50 },
+  ...platinumThree(30, 50),
 ];
 
 const TIERS_OFFERS: Tier[] = [
@@ -98,7 +110,7 @@ const TIERS_OFFERS: Tier[] = [
   { name: 'Gold 1',   min: 6 },
   { name: 'Gold 2',   min: 8 },
   { name: 'Gold 3',   min: 10 },
-  { name: 'Platinum', min: 15 },
+  ...platinumThree(10, 15),
 ];
 
 const TIERS_FOLLOW_UPS: Tier[] = [
@@ -111,7 +123,7 @@ const TIERS_FOLLOW_UPS: Tier[] = [
   { name: 'Gold 1',   min: 40 },
   { name: 'Gold 2',   min: 60 },
   { name: 'Gold 3',   min: 90 },
-  { name: 'Platinum', min: 150 },
+  ...platinumThree(90, 150),
 ];
 
 const TIERS_PREP_KITS: Tier[] = [
@@ -124,7 +136,7 @@ const TIERS_PREP_KITS: Tier[] = [
   { name: 'Gold 1',   min: 15 },
   { name: 'Gold 2',   min: 20 },
   { name: 'Gold 3',   min: 30 },
-  { name: 'Platinum', min: 50 },
+  ...platinumThree(30, 50),
 ];
 
 const TIERS_STAR_STORIES: Tier[] = [
@@ -137,7 +149,22 @@ const TIERS_STAR_STORIES: Tier[] = [
   { name: 'Gold 1',   min: 11 },
   { name: 'Gold 2',   min: 14 },
   { name: 'Gold 3',   min: 17 },
-  { name: 'Platinum', min: 21 },
+  ...platinumThree(17, 21),
+];
+
+const TIERS_MAX_APPS_ONE_DAY: Tier[] = [
+  { name: 'Bronze 1', min: 0 },
+  { name: 'Bronze 2', min: 3 },
+  { name: 'Bronze 3', min: 10 },
+  { name: 'Silver 1', min: 15 },
+  { name: 'Silver 2', min: 20 },
+  { name: 'Silver 3', min: 30 },
+  { name: 'Gold 1', min: 40 },
+  { name: 'Gold 2', min: 50 },
+  { name: 'Gold 3', min: 75 },
+  { name: 'Platinum 1', min: 100 },
+  { name: 'Platinum 2', min: 150 },
+  { name: 'Platinum 3', min: 250 },
 ];
 
 export const ACHIEVEMENT_DEFS: AchievementDef[] = [
@@ -147,6 +174,13 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     description: 'Every application is a step forward. Volume builds luck.',
     unit: 'application',
     tiers: TIERS_JOBS_APPLIED,
+  },
+  {
+    id: 'max_apps_one_day',
+    name: 'Most Applications in a Day',
+    description: 'How many applications can you send in one day?',
+    unit: 'application',
+    tiers: TIERS_MAX_APPS_ONE_DAY,
   },
   {
     id: 'recruiter_screens',
@@ -223,6 +257,31 @@ export interface AchievementsInput {
   stories: Story[];
 }
 
+export function calendarDayKeyForApplication(job: Job): string | null {
+  const raw = (job.dateApplied?.trim() || job.createdAt || '').trim();
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const t = new Date(raw);
+  if (Number.isNaN(t.getTime())) return null;
+  const y = t.getFullYear();
+  const mo = String(t.getMonth() + 1).padStart(2, '0');
+  const d = String(t.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${d}`;
+}
+
+/** Max number of jobs attributed to the same local calendar day (date_applied, else created_at). */
+export function maxApplicationsInOneDay(jobs: Job[]): number {
+  const byDay = new Map<string, number>();
+  for (const j of jobs) {
+    const k = calendarDayKeyForApplication(j);
+    if (!k) continue;
+    byDay.set(k, (byDay.get(k) ?? 0) + 1);
+  }
+  let max = 0;
+  for (const n of byDay.values()) max = Math.max(max, n);
+  return max;
+}
+
 export function computeAllAchievements({ jobs, pointEvents, stories }: AchievementsInput): ComputedAchievement[] {
   const countByType = (type: string) =>
     pointEvents.filter((e) => e.eventType === type).length;
@@ -234,6 +293,7 @@ export function computeAllAchievements({ jobs, pointEvents, stories }: Achieveme
     let count = 0;
     switch (def.id) {
       case 'jobs_applied':       count = jobs.length; break;
+      case 'max_apps_one_day':   count = maxApplicationsInOneDay(jobs); break;
       case 'recruiter_screens':  count = countByType('status_recruiter_screen'); break;
       case 'interviews':         count = countByType('status_interviewing'); break;
       case 'offers':             count = countByType('status_offer'); break;

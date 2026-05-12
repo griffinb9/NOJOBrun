@@ -112,6 +112,8 @@ export async function awardPoints(
       updatedAt: ts,
     });
 
+    await db.syncPublicGamificationSnapshot();
+
     return true;
   } catch {
     return false;

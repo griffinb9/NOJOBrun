@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  LogOut, Settings, FileText, CheckCircle2, AlertCircle, Loader2, ChevronRight,
+  LogOut, Settings, FileText, CheckCircle2, AlertCircle, Loader2, ChevronRight, Users,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import SettingsModal from '@/components/ui/SettingsModal';
@@ -45,6 +45,20 @@ export default function MobileProfile() {
 
         {/* Resume status */}
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => router.push('/friends')}
+            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-stone-50 active:bg-stone-100 transition-colors border-b border-stone-50"
+          >
+            <Users size={18} className="text-violet-500 shrink-0" />
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-sm font-semibold text-stone-700">Friends</p>
+              <p className="text-xs mt-0.5 text-stone-400">
+                {profile.username?.trim() ? 'Squad up & compare stats' : 'Set a username in Profile to use'}
+              </p>
+            </div>
+            <ChevronRight size={16} className="text-stone-300" />
+          </button>
           <button
             type="button"
             onClick={() => router.push('/profile')}

@@ -4,6 +4,10 @@ export interface UserProfile {
   id: string;
   fullName: string;
   email: string;
+  /** Lowercase handle, 3–20 chars [a-z0-9_.]; shown as @handle. */
+  username?: string;
+  /** Optional public display override (friends / search). */
+  displayName?: string;
   /**
    * When true, Applied column order follows drag-and-drop sort_order only.
    * When false, Applied defaults to newest application date first (see kanbanOrder).
@@ -159,6 +163,56 @@ export interface UserProgress {
   longestStreak?: number;
   /** Latest calendar day in the active streak chain (YYYY-MM-DD), if any. */
   lastStreakDate?: string | null;
+  /** Denormalized for friend-visible cards; updated with streak sync. */
+  maxAppsOneDay?: number;
+  /** Count of achievements with progress > 0; friend-visible. */
+  achievementsUnlockedCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Safe row from username search RPC (no email or private job data). */
+export interface PublicFriendSearchResult {
+  id: string;
+  username: string;
+  displayName: string | null;
+  fullName: string;
+  currentRank: string;
+  totalPoints: number;
+}
+
+/** Safe stats for an accepted friend (from RPC or friend progress read). */
+export interface PublicFriendCard {
+  userId: string;
+  username: string;
+  displayName: string | null;
+  fullName: string;
+  currentRank: string;
+  totalPoints: number;
+  achievementsUnlockedCount: number;
+  longestStreak: number;
+  currentStreak: number;
+  maxAppsOneDay: number;
+}
+
+/** Incoming friend request row (public fields only). */
+export interface IncomingFriendPreview {
+  friendshipId: string;
+  requesterId: string;
+  username: string | null;
+  displayName: string | null;
+  fullName: string;
+  currentRank: string;
+  totalPoints: number;
+}
+
+export type FriendshipStatus = 'pending' | 'accepted' | 'declined' | 'blocked';
+
+export interface Friendship {
+  id: string;
+  requesterId: string;
+  receiverId: string;
+  status: FriendshipStatus;
   createdAt: string;
   updatedAt: string;
 }
