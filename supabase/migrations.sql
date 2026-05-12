@@ -393,3 +393,101 @@ $$;
 
 revoke all on function public.get_pending_incoming_friend_requests() from public;
 grant execute on function public.get_pending_incoming_friend_requests() to authenticated;
+
+-- Aggregated achievement counts for an accepted friend (no application row details returned).
+create or replace function public.get_friend_achievement_summary(p_friend_user_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  friends_ok boolean;
+  jobs_n bigint;
+  max_day bigint;
+  screens_n bigint;
+  interviews_n bigint;
+  offers_n bigint;
+  followups_n bigint;
+  prep_n bigint;
+  stories_n bigint;
+  longest_n integer;
+  current_n integer;
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated';
+  end if;
+
+  select exists (
+    select 1 from public.friendships f
+    where f.status = 'accepted'
+      and (
+        (f.requester_id = auth.uid() and f.receiver_id = p_friend_user_id)
+        or (f.receiver_id = auth.uid() and f.requester_id = p_friend_user_id)
+      )
+  ) into friends_ok;
+
+  if not friends_ok then
+    return jsonb_build_object('ok', false, 'error', 'not_friends');
+  end if;
+
+  select count(*)::bigint into jobs_n
+  from public.applications a where a.user_id = p_friend_user_id;
+
+  with per_day as (
+    select coalesce(a.date_applied, (a.created_at at time zone 'utc')::date) as d, count(*)::bigint as c
+    from public.applications a
+    where a.user_id = p_friend_user_id
+    group by 1
+  )
+  select coalesce(max(c), 0) into max_day from per_day;
+
+  select count(*)::bigint into screens_n
+  from public.point_events e
+  where e.user_id = p_friend_user_id and e.event_type = 'status_recruiter_screen';
+
+  select count(*)::bigint into interviews_n
+  from public.point_events e
+  where e.user_id = p_friend_user_id and e.event_type = 'status_interviewing';
+
+  select count(*)::bigint into offers_n
+  from public.point_events e
+  where e.user_id = p_friend_user_id and e.event_type = 'status_offer';
+
+  select count(*)::bigint into followups_n
+  from public.point_events e
+  where e.user_id = p_friend_user_id and e.event_type = 'follow_up_sent';
+
+  select count(*)::bigint into prep_n
+  from public.point_events e
+  where e.user_id = p_friend_user_id and e.event_type = 'interview_prep_generated';
+
+  select count(*)::bigint into stories_n
+  from public.stories s where s.user_id = p_friend_user_id;
+
+  select coalesce(max(pr.longest_streak), 0), coalesce(max(pr.current_streak), 0)
+  into longest_n, current_n
+  from public.user_progress pr
+  where pr.user_id = p_friend_user_id;
+
+  return jsonb_build_object(
+    'ok', true,
+    'current_streak', current_n,
+    'counts', jsonb_build_object(
+      'jobs_applied', jobs_n,
+      'max_apps_one_day', max_day,
+      'recruiter_screens', screens_n,
+      'interviews', interviews_n,
+      'offers', offers_n,
+      'follow_ups', followups_n,
+      'prep_kits', prep_n,
+      'star_stories', stories_n,
+      'longest_streak', longest_n
+    )
+  );
+end;
+$$;
+
+revoke all on function public.get_friend_achievement_summary(uuid) from public;
+grant execute on function public.get_friend_achievement_summary(uuid) to authenticated;

@@ -687,4 +687,36 @@ export const db = {
       totalPoints: r.total_points,
     }));
   },
+
+  /**
+   * Public achievement aggregates for an accepted friend only (RPC enforces friendship).
+   * Does not return application rows or private fields.
+   */
+  async getFriendAchievementSummary(friendUserId: string): Promise<{
+    ok: boolean;
+    error?: string;
+    counts?: Record<string, number>;
+    current_streak?: number;
+  }> {
+    const { data, error } = await supabase.rpc('get_friend_achievement_summary', {
+      p_friend_user_id: friendUserId,
+    });
+    if (error) throw new Error(error.message);
+    const raw = data as {
+      ok?: boolean;
+      error?: string;
+      counts?: Record<string, unknown>;
+      current_streak?: unknown;
+    } | null;
+    if (!raw || typeof raw !== 'object') return { ok: false, error: 'invalid_response' };
+    if (!raw.ok) return { ok: false, error: String(raw.error ?? 'not_friends') };
+    const co = raw.counts ?? {};
+    const counts: Record<string, number> = {};
+    for (const [k, v] of Object.entries(co)) {
+      counts[k] = typeof v === 'number' && !Number.isNaN(v) ? v : Number(v) || 0;
+    }
+    const cs = raw.current_streak;
+    const current_streak = typeof cs === 'number' && !Number.isNaN(cs) ? cs : Number(cs) || 0;
+    return { ok: true, counts, current_streak };
+  },
 };

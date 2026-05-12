@@ -21,6 +21,7 @@ import type { Friendship, IncomingFriendPreview, PublicFriendCard, PublicFriendS
 import { publicDisplayLabel } from '@/lib/public-profile';
 import { formatUsernameAt, normalizeUsername, validateUsername } from '@/lib/username';
 import { useMobileNav } from '@/lib/mobile-nav';
+import FriendProfileModal from '@/components/friends/FriendProfileModal';
 
 function rankBadgeClass(rank: string): string {
   const r = rank.toLowerCase();
@@ -43,6 +44,8 @@ export default function FriendsPage() {
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailCard, setDetailCard] = useState<PublicFriendCard | null>(null);
 
   const hasUsername = !!(profile?.username?.trim());
 
@@ -84,7 +87,7 @@ export default function FriendsPage() {
       .filter((f) => f.status === 'accepted')
       .map((f) => {
         const otherId = f.requesterId === user.id ? f.receiverId : f.requesterId;
-        return { friendship: f, otherId, card: cardByUserId.get(otherId) };
+        return { friendship: f, card: cardByUserId.get(otherId) };
       });
   }, [friendships, user, cardByUserId]);
 
@@ -173,6 +176,16 @@ export default function FriendsPage() {
     } finally {
       setActionId(null);
     }
+  }
+
+  function openFriendDetail(c: PublicFriendCard) {
+    setDetailCard(c);
+    setDetailOpen(true);
+  }
+
+  function closeFriendDetail() {
+    setDetailOpen(false);
+    setDetailCard(null);
   }
 
   if (!profile || !user) return null;
@@ -383,32 +396,61 @@ export default function FriendsPage() {
             </p>
           ) : (
             <ul className="space-y-4">
-              {acceptedRows.map(({ friendship, otherId, card }) => (
+              {acceptedRows.map(({ friendship, card }) => (
                 <li
                   key={friendship.id}
                   className="rounded-2xl border border-white/90 bg-white/90 backdrop-blur-sm shadow-md shadow-violet-500/10 overflow-hidden"
                 >
                   {card ? (
                     <>
-                      <div className={`px-4 py-3 bg-gradient-to-r ${rankBadgeClass(card.currentRank)} text-white`}>
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-bold text-lg leading-tight">
-                              {publicDisplayLabel({ displayName: card.displayName, fullName: card.fullName })}
-                            </p>
-                            <p className="text-white/90 text-sm font-medium">{formatUsernameAt(card.username)}</p>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openFriendDetail(card)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openFriendDetail(card);
+                          }
+                        }}
+                        className="w-full text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/90 transition-colors hover:bg-stone-50/50"
+                      >
+                        <div className={`px-4 py-3 bg-gradient-to-r ${rankBadgeClass(card.currentRank)} text-white`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-bold text-lg leading-tight">
+                                {publicDisplayLabel({ displayName: card.displayName, fullName: card.fullName })}
+                              </p>
+                              <p className="text-white/90 text-sm font-medium">{formatUsernameAt(card.username)}</p>
+                            </div>
+                            <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold uppercase tracking-wide">
+                              {card.currentRank}
+                            </span>
                           </div>
-                          <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold uppercase tracking-wide">
-                            {card.currentRank}
-                          </span>
                         </div>
+                        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                          <StatPill icon={Trophy} label="Points" value={card.totalPoints} accent="text-amber-600" />
+                          <StatPill icon={Sparkles} label="Achievements" value={card.achievementsUnlockedCount} accent="text-fuchsia-600" />
+                          <StatPill icon={Flame} label="Current streak" value={`${card.currentStreak}d`} accent="text-orange-600" />
+                          <StatPill icon={Flame} label="Best streak" value={`${card.longestStreak}d`} accent="text-rose-600" />
+                          <StatPill icon={Zap} label="Most in one day" value={card.maxAppsOneDay} accent="text-sky-600" />
+                        </div>
+                        <p className="text-center text-[11px] text-stone-400 pb-3 px-4 font-medium">
+                          Tap to view achievement badges
+                        </p>
                       </div>
-                      <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                        <StatPill icon={Trophy} label="Points" value={card.totalPoints} accent="text-amber-600" />
-                        <StatPill icon={Sparkles} label="Achievements" value={card.achievementsUnlockedCount} accent="text-fuchsia-600" />
-                        <StatPill icon={Flame} label="Current streak" value={`${card.currentStreak}d`} accent="text-orange-600" />
-                        <StatPill icon={Flame} label="Best streak" value={`${card.longestStreak}d`} accent="text-rose-600" />
-                        <StatPill icon={Zap} label="Most in one day" value={card.maxAppsOneDay} accent="text-sky-600" />
+                      <div className="px-4 pb-4 pt-1 flex justify-end border-t border-stone-100/80">
+                        <button
+                          type="button"
+                          disabled={actionId === friendship.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFriend(friendship.id);
+                          }}
+                          className="text-xs font-semibold text-stone-400 hover:text-rose-600 disabled:opacity-50"
+                        >
+                          {actionId === friendship.id ? 'Removing…' : 'Remove friend'}
+                        </button>
                       </div>
                     </>
                   ) : (
@@ -416,22 +458,13 @@ export default function FriendsPage() {
                       Friend profile is updating — only public stats are shown here.
                     </div>
                   )}
-                  <div className="px-4 pb-4 flex justify-end">
-                    <button
-                      type="button"
-                      disabled={actionId === friendship.id}
-                      onClick={() => removeFriend(friendship.id)}
-                      className="text-xs font-semibold text-stone-400 hover:text-rose-600 disabled:opacity-50"
-                    >
-                      {actionId === friendship.id ? 'Removing…' : 'Remove friend'}
-                    </button>
-                  </div>
                 </li>
               ))}
             </ul>
           )}
         </section>
       </div>
+      <FriendProfileModal open={detailOpen} onClose={closeFriendDetail} card={detailCard} />
     </div>
   );
 }

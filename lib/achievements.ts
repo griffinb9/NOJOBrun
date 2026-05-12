@@ -167,6 +167,43 @@ const TIERS_MAX_APPS_ONE_DAY: Tier[] = [
   { name: 'Platinum 3', min: 250 },
 ];
 
+/** Consecutive-day run (calendar); friend-visible tier ladder. */
+const TIERS_LONGEST_STREAK: Tier[] = [
+  { name: 'Bronze 1', min: 0 },
+  { name: 'Bronze 2', min: 3 },
+  { name: 'Bronze 3', min: 7 },
+  { name: 'Silver 1', min: 14 },
+  { name: 'Silver 2', min: 21 },
+  { name: 'Silver 3', min: 30 },
+  { name: 'Gold 1', min: 45 },
+  { name: 'Gold 2', min: 60 },
+  { name: 'Gold 3', min: 90 },
+  ...platinumThree(90, 120),
+];
+
+export const LONGEST_STREAK_ACHIEVEMENT_DEF: AchievementDef = {
+  id: 'longest_streak',
+  name: 'Longest Streak',
+  description: 'Best consecutive days with applications logged.',
+  unit: 'day',
+  tiers: TIERS_LONGEST_STREAK,
+};
+
+/** Order used on friend public profile (matches product copy). */
+export const FRIEND_ACHIEVEMENT_DISPLAY_ORDER = [
+  'jobs_applied',
+  'recruiter_screens',
+  'interviews',
+  'offers',
+  'follow_ups',
+  'prep_kits',
+  'star_stories',
+  'longest_streak',
+  'max_apps_one_day',
+] as const;
+
+export type FriendAchievementDisplayId = (typeof FRIEND_ACHIEVEMENT_DISPLAY_ORDER)[number];
+
 export const ACHIEVEMENT_DEFS: AchievementDef[] = [
   {
     id: 'jobs_applied',
@@ -226,7 +263,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
   },
 ];
 
-function computeAchievement(def: AchievementDef, count: number): ComputedAchievement {
+export function computeAchievement(def: AchievementDef, count: number): ComputedAchievement {
   const tiers = def.tiers;
 
   // Find the highest tier whose min <= count
@@ -249,6 +286,20 @@ function computeAchievement(def: AchievementDef, count: number): ComputedAchieve
   }
 
   return { ...def, count, currentTier, nextTier, progressPercent, toNextTier };
+}
+
+export function computeFriendAchievementsFromCounts(
+  counts: Partial<Record<FriendAchievementDisplayId | string, number>>,
+): ComputedAchievement[] {
+  return FRIEND_ACHIEVEMENT_DISPLAY_ORDER.map((id) => {
+    const c = Math.max(0, Math.floor(Number(counts[id] ?? 0)));
+    if (id === 'longest_streak') {
+      return computeAchievement(LONGEST_STREAK_ACHIEVEMENT_DEF, c);
+    }
+    const def = ACHIEVEMENT_DEFS.find((d) => d.id === id);
+    if (!def) throw new Error(`Unknown achievement id: ${id}`);
+    return computeAchievement(def, c);
+  });
 }
 
 export interface AchievementsInput {
