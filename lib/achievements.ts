@@ -150,9 +150,9 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
   },
   {
     id: 'recruiter_screens',
-    name: 'Recruiter Screens',
+    name: 'Screens',
     description: 'Getting past the initial filter is a real signal.',
-    unit: 'recruiter screen',
+    unit: 'screen',
     tiers: TIERS_RECRUITER_SCREENS,
   },
   {

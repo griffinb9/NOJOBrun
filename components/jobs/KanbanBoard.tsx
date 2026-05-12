@@ -169,7 +169,7 @@ export default function KanbanBoard() {
       );
     } else {
       // ── Different column: status change + positional insert ───────────
-      if (newStatus === 'recruiter_screen') await awardPoints('status_recruiter_screen', draggedJob.id, `Recruiter screen earned for ${draggedJob.company}`);
+      if (newStatus === 'recruiter_screen') await awardPoints('status_recruiter_screen', draggedJob.id, `Screen earned for ${draggedJob.company}`);
       else if (newStatus === 'interviewing') await awardPoints('status_interviewing', draggedJob.id);
       else if (newStatus === 'offer')        await awardPoints('status_offer', draggedJob.id);
       else if (newStatus === 'rejected')     await awardPoints('status_rejected', draggedJob.id);

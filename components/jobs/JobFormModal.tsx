@@ -82,7 +82,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
         await db.updateJob({ ...job, ...form, updatedAt: ts });
 
         if (form.status !== job.status) {
-          if (form.status === 'recruiter_screen') await awardPoints('status_recruiter_screen', job.id, `Recruiter screen earned for ${form.company}`);
+          if (form.status === 'recruiter_screen') await awardPoints('status_recruiter_screen', job.id, `Screen earned for ${form.company}`);
           else if (form.status === 'interviewing') await awardPoints('status_interviewing', job.id);
           else if (form.status === 'offer') await awardPoints('status_offer', job.id);
           else if (form.status === 'rejected') await awardPoints('status_rejected', job.id);
@@ -94,7 +94,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
         await db.addJob({ ...form, id, createdAt: ts, updatedAt: ts });
         await awardPoints('application_added', id);
 
-        if (form.status === 'recruiter_screen') await awardPoints('status_recruiter_screen', id, `Recruiter screen earned for ${form.company}`);
+        if (form.status === 'recruiter_screen') await awardPoints('status_recruiter_screen', id, `Screen earned for ${form.company}`);
         else if (form.status === 'interviewing') await awardPoints('status_interviewing', id);
         else if (form.status === 'offer') await awardPoints('status_offer', id);
         else if (form.status === 'rejected') await awardPoints('status_rejected', id);

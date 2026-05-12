@@ -21,7 +21,7 @@ const STATUS_ACCENT: Record<JobStatus, string> = {
 
 const PREP_TAGLINE: Partial<Record<JobStatus, string>> = {
   interviewing:     'Interview coming up — get prepped.',
-  recruiter_screen: 'Recruiter screen — know your story.',
+  recruiter_screen: 'Screen — know your story.',
   offer:            'Offer stage — be ready to negotiate.',
   applied:          'Applied — stay ahead.',
 };

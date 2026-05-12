@@ -34,7 +34,7 @@ export interface Job {
   contactName?: string;
   contactEmail?: string;
   sortOrder?: number;
-  /** True once the job has ever been in recruiter screen, interviewing, or offer (sticky). */
+  /** True once the job has ever been in screen, interviewing, or offer (sticky). */
   hasResponse?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -58,7 +58,7 @@ export interface AppSettings {
 
 export const KANBAN_COLUMNS: { id: JobStatus; label: string; color: string }[] = [
   { id: 'applied', label: 'Applied', color: 'blue' },
-  { id: 'recruiter_screen', label: 'Recruiter Screen', color: 'sky' },
+  { id: 'recruiter_screen', label: 'Screen', color: 'sky' },
   { id: 'interviewing', label: 'Interviewing', color: 'violet' },
   { id: 'offer', label: 'Offer', color: 'green' },
   { id: 'rejected', label: 'Rejected', color: 'red' },
@@ -85,7 +85,7 @@ export const STATUS_BORDER: Record<JobStatus, string> = {
 
 export const STATUS_LABELS: Record<JobStatus, string> = {
   applied: 'Applied',
-  recruiter_screen: 'Recruiter Screen',
+  recruiter_screen: 'Screen',
   interviewing: 'Interviewing',
   offer: 'Offer',
   rejected: 'Rejected',
@@ -118,7 +118,7 @@ export const POINT_VALUES: Record<PointEventType, number> = {
 export const POINT_DESCRIPTIONS: Record<PointEventType, string> = {
   application_added: 'Added a job application',
   follow_up_sent: 'Sent a follow-up email',
-  status_recruiter_screen: 'Recruiter screen scheduled',
+  status_recruiter_screen: 'Screen scheduled',
   status_interviewing: 'Interview scheduled',
   status_offer: 'Offer received',
   status_rejected: 'Logged a rejection',

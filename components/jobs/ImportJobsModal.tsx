@@ -524,7 +524,7 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
       importedIds.push(job.id);
       await awardPoints('application_added', job.id);
 
-      if (status === 'recruiter_screen') await awardPoints('status_recruiter_screen', job.id, `Recruiter screen earned for ${company}`);
+      if (status === 'recruiter_screen') await awardPoints('status_recruiter_screen', job.id, `Screen earned for ${company}`);
       else if (status === 'interviewing') await awardPoints('status_interviewing', job.id);
       else if (status === 'offer')        await awardPoints('status_offer', job.id);
       else if (status === 'rejected')     await awardPoints('status_rejected', job.id);

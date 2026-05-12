@@ -73,7 +73,7 @@ const COL_BG: Record<string, string> = {
 // Motivating empty-state copy per column
 const COL_EMPTY: Record<string, string> = {
   applied:          'No applications yet — drop one in.',
-  recruiter_screen: 'Phone screens land here.',
+  recruiter_screen: 'Screens land here.',
   interviewing:     'Interviews will show up here.',
   offer:            'No offers yet — keep building.',
   rejected:         'Closed doors still count as reps.',

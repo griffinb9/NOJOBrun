@@ -21,7 +21,7 @@ type Filter = 'all' | JobStatus;
 const FILTERS: { id: Filter; label: string; short: string }[] = [
   { id: 'all',              label: 'All',         short: 'All'       },
   { id: 'applied',          label: 'Applied',     short: 'Applied'   },
-  { id: 'recruiter_screen', label: 'Screening',   short: 'Screen'    },
+  { id: 'recruiter_screen', label: 'Screen',      short: 'Screen'    },
   { id: 'interviewing',     label: 'Interviewing',short: 'Interview' },
   { id: 'offer',            label: 'Offer',       short: 'Offer'     },
   { id: 'rejected',         label: 'Rejected',    short: 'Rejected'  },
