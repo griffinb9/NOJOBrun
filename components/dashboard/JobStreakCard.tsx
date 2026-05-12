@@ -9,24 +9,28 @@ import { computeWeekStreakDays } from '@/lib/job-streak';
 interface Props {
   summary: JobStreakSummary;
   jobs: Job[];
+  /** Smaller layout for mobile home — desktop uses default via Dashboard if added later. */
+  compact?: boolean;
 }
 
-function WeekDayDot({ day }: { day: WeekStreakDay }) {
+function WeekDayDot({ day, compact }: { day: WeekStreakDay; compact?: boolean }) {
   const { completed, isToday, isMissed, isFuture } = day;
 
+  const sz = compact ? 'h-7 w-7' : 'h-9 w-9 sm:h-10 sm:w-10';
   let circleClass =
-    'flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 transition-all duration-300 ';
+    `flex ${sz} items-center justify-center rounded-full border-2 transition-all duration-300 `;
   let inner: ReactNode = null;
 
   if (completed) {
     circleClass +=
       'border-emerald-300/80 bg-gradient-to-br from-emerald-400/90 to-indigo-500/75 text-white '
       + 'shadow-[0_0_8px_rgba(52,211,153,0.28),0_0_14px_rgba(79,70,229,0.1)] scale-105';
-    inner = <Check size={16} strokeWidth={2.5} className="drop-shadow-sm" />;
+    inner = <Check size={compact ? 13 : 16} strokeWidth={2.5} className="drop-shadow-sm" />;
   } else if (isToday) {
     circleClass +=
       'border-amber-400/70 bg-amber-50/90 text-amber-800 '
-      + 'shadow-[0_0_10px_rgba(251,191,36,0.22),inset_0_1px_0_rgba(255,255,255,0.65)] ring-2 ring-amber-400/45 ring-offset-2 ring-offset-[#d0d8e6]';
+      + 'shadow-[0_0_10px_rgba(251,191,36,0.22),inset_0_1px_0_rgba(255,255,255,0.65)] ring-2 ring-amber-400/45 '
+      + (compact ? 'ring-offset-1 ring-offset-[#d0d8e6]' : 'ring-offset-2 ring-offset-[#d0d8e6]');
   } else if (isMissed) {
     circleClass += 'border-slate-200/90 bg-slate-100/80 text-slate-300 opacity-80';
   } else if (isFuture) {
@@ -39,9 +43,9 @@ function WeekDayDot({ day }: { day: WeekStreakDay }) {
     <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
       <div className={circleClass}>{inner}</div>
       <span
-        className={`max-w-[3.25rem] truncate text-center text-[10px] font-semibold uppercase tracking-wide sm:text-[11px] ${
-          isToday ? 'text-amber-900/90' : completed ? 'text-emerald-900/88' : 'text-slate-600'
-        }`}
+        className={`max-w-[3.25rem] truncate text-center font-semibold uppercase tracking-wide ${
+          compact ? 'text-[9px]' : 'text-[10px] sm:text-[11px]'
+        } ${isToday ? 'text-amber-900/90' : completed ? 'text-emerald-900/88' : 'text-slate-600'}`}
       >
         {day.label}
       </span>
@@ -49,7 +53,7 @@ function WeekDayDot({ day }: { day: WeekStreakDay }) {
   );
 }
 
-export default function JobStreakCard({ summary, jobs }: Props) {
+export default function JobStreakCard({ summary, jobs, compact = false }: Props) {
   const { currentStreak, longestStreak, appliedToday } = summary;
   const weekDays = useMemo(() => computeWeekStreakDays(jobs), [jobs]);
 
@@ -71,6 +75,73 @@ export default function JobStreakCard({ summary, jobs }: Props) {
 
   const numHero =
     'font-black tabular-nums tracking-tight bg-gradient-to-br from-slate-900 via-indigo-800 to-indigo-950 bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(15,23,42,0.12)]';
+
+  if (compact) {
+    return (
+      <div
+        className={
+          'group relative overflow-hidden rounded-2xl border border-white/40 bg-gradient-to-br from-[#cfd6e4] via-[#c6cfdf] to-[#bac4d8] '
+          + 'p-3.5 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.12)] ring-1 ring-slate-900/[0.04]'
+        }
+      >
+        <div className="relative flex flex-row items-center gap-3">
+          <div className="flex shrink-0 justify-center">
+            <div
+              className={
+                'relative flex h-14 w-14 items-center justify-center rounded-full border border-white/50 '
+                + 'bg-gradient-to-br from-white/92 via-indigo-100/45 to-slate-200/75 '
+                + (streakHot ? 'streak-flame-pulse' : '')
+              }
+            >
+              <div
+                className={
+                  'flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 '
+                  + (streakHot
+                    ? 'shadow-[0_0_12px_rgba(251,146,60,0.3)]'
+                    : 'shadow-[0_0_8px_rgba(251,146,60,0.18)] opacity-95')
+                }
+              >
+                <Flame
+                  size={22}
+                  strokeWidth={1.75}
+                  className={streakHot ? 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.7)]' : 'text-white/95'}
+                  fill={streakHot ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)'}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-indigo-950/50">Streak</p>
+            <p className="font-black text-slate-900 text-lg leading-tight tabular-nums">
+              {currentStreak === 0 ? headline : (
+                <>
+                  <span className={numHero}>{currentStreak}</span>
+                  <span className="text-sm font-bold text-slate-700">
+                    {currentStreak === 1 ? ' day' : ' days'}
+                  </span>
+                </>
+              )}
+            </p>
+            <p className={`text-[11px] leading-snug mt-0.5 ${appliedToday ? 'text-emerald-900/90' : 'text-slate-600'}`}>
+              {appliedToday ? 'Applied today' : 'Apply today to extend'}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-0.5 text-right pr-0.5 min-w-[2.5rem]">
+            <span className="text-[9px] font-bold uppercase text-indigo-950/45">Best</span>
+            <span className={`text-base font-black tabular-nums ${numHero}`}>{longestStreak || '—'}</span>
+          </div>
+        </div>
+        <div className="mt-2.5 pt-2.5 border-t border-slate-400/20">
+          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-600">This week</p>
+          <div className="flex justify-between gap-0.5">
+            {weekDays.map((d) => (
+              <WeekDayDot key={d.ymd} day={d} compact />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -202,7 +273,7 @@ export default function JobStreakCard({ summary, jobs }: Props) {
             </p>
             <div className="flex justify-between gap-1 sm:gap-2">
               {weekDays.map((d) => (
-                <WeekDayDot key={d.ymd} day={d} />
+                <WeekDayDot key={d.ymd} day={d} compact={false} />
               ))}
             </div>
           </div>

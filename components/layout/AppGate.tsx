@@ -24,7 +24,10 @@ export default function AppGate({ children }: { children: React.ReactNode }) {
 
   // Pages that should render their own content on mobile
   // (already mobile-optimized, e.g. PrepPage with its own back button)
-  const showPageOnMobile = pathname.startsWith('/prep/') || pathname === '/profile' || pathname === '/friends';
+  const showPageOnMobile =
+    pathname.startsWith('/prep')
+    || pathname === '/profile'
+    || pathname === '/friends';
 
   return (
     <MobileNavProvider>

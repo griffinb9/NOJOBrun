@@ -3,7 +3,7 @@
 import { useMobileNav } from '@/lib/mobile-nav';
 import MobileHome from './MobileHome';
 import MobileJobs from './MobileJobs';
-import MobilePrep from './MobilePrep';
+import MobileAchievements from './MobileAchievements';
 import MobileProfile from './MobileProfile';
 
 export default function MobileLayout() {
@@ -11,9 +11,9 @@ export default function MobileLayout() {
 
   return (
     <div className="flex-1 overflow-y-auto overscroll-y-contain">
-      {tab === 'home'    && <MobileHome />}
-      {tab === 'jobs'    && <MobileJobs />}
-      {tab === 'prep'    && <MobilePrep />}
+      {tab === 'home' && <MobileHome />}
+      {tab === 'jobs' && <MobileJobs />}
+      {tab === 'achievements' && <MobileAchievements />}
       {tab === 'profile' && <MobileProfile />}
     </div>
   );

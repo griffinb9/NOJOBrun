@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState } from 'react';
 
-export type MobileTab = 'home' | 'jobs' | 'prep' | 'profile';
+export type MobileTab = 'home' | 'jobs' | 'achievements' | 'profile';
 
 interface MobileNavCtx {
   tab: MobileTab;

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Flame, Plus, Mic, Clock, Zap, ChevronRight, TrendingUp, Target,
   Rocket, Sparkles,
@@ -28,7 +30,8 @@ const RANK_ICONS: Record<string, LucideIcon> = {
 interface FocusItem {
   icon: LucideIcon;
   text: string;
-  tab?: 'jobs' | 'prep';
+  tab?: 'jobs' | 'achievements';
+  href?: string;
   accent: string;
 }
 
@@ -63,7 +66,7 @@ function buildFocusItems(jobs: Job[]): FocusItem[] {
     items.push({
       icon: Mic,
       text: `Interview at ${upcoming.company} in ${daysUntil === 0 ? 'today' : `${daysUntil}d`} — review your prep.`,
-      tab: 'prep',
+      href: '/prep',
       accent: 'text-violet-600',
     });
   }
@@ -110,6 +113,7 @@ function buildFocusItems(jobs: Job[]): FocusItem[] {
 export default function MobileHome() {
   const { profile } = useAuth();
   const { setTab } = useMobileNav();
+  const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -243,7 +247,21 @@ export default function MobileHome() {
           </div>
         </div>
 
-        <JobStreakCard summary={streakSummary} jobs={jobs} />
+        <JobStreakCard summary={streakSummary} jobs={jobs} compact />
+
+        <Link
+          href="/prep"
+          className="flex items-center gap-3 rounded-2xl border border-violet-100 bg-white px-4 py-3.5 shadow-sm active:scale-[0.99] transition-transform"
+        >
+          <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+            <Mic size={18} className="text-violet-500" />
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-sm font-bold text-stone-800">Interview Prep</p>
+            <p className="text-xs text-stone-400 mt-0.5">AI prep kits for your roles</p>
+          </div>
+          <ChevronRight size={16} className="text-stone-300 shrink-0" />
+        </Link>
 
         {/* ── Quick stats ─────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-2">
@@ -272,13 +290,17 @@ export default function MobileHome() {
             {focusItems.map((item, i) => (
               <button
                 key={i}
-                onClick={() => item.tab && setTab(item.tab)}
-                disabled={!item.tab}
+                type="button"
+                onClick={() => {
+                  if (item.href) router.push(item.href);
+                  else if (item.tab) setTab(item.tab);
+                }}
+                disabled={!item.tab && !item.href}
                 className="w-full flex items-start gap-3 px-5 py-3.5 text-left hover:bg-stone-50 active:bg-stone-100 transition-colors disabled:cursor-default"
               >
                 <item.icon size={15} className={`${item.accent} mt-0.5 shrink-0`} />
                 <span className="text-sm text-stone-600 flex-1 leading-snug">{item.text}</span>
-                {item.tab && <ChevronRight size={14} className="text-stone-300 mt-0.5 shrink-0" />}
+                {(item.tab || item.href) && <ChevronRight size={14} className="text-stone-300 mt-0.5 shrink-0" />}
               </button>
             ))}
           </div>

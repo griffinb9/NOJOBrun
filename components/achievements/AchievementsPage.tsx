@@ -76,8 +76,9 @@ function getMicrocopy(id: string, progressPercent: number, isPlatinum: boolean):
   return pool[Math.min(idx, pool.length - 1)];
 }
 
-export default function AchievementsPage() {
+export default function AchievementsPage({ variant = 'default' }: { variant?: 'default' | 'embedded' }) {
   const [achievements, setAchievements] = useState<ComputedAchievement[]>([]);
+  const embedded = variant === 'embedded';
 
   useEffect(() => {
     async function load() {
@@ -95,34 +96,50 @@ export default function AchievementsPage() {
   const earned = achievements.filter((a) => a.count > 0).length;
 
   return (
-    <div className="p-6 md:p-10 max-w-5xl mx-auto w-full">
+    <div
+      className={
+        embedded
+          ? 'p-4 pb-6 max-w-full mx-auto w-full overflow-x-hidden'
+          : 'p-6 md:p-10 max-w-5xl mx-auto w-full'
+      }
+    >
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between mb-6 md:mb-10 gap-4">
+      <div
+        className={
+          embedded
+            ? 'flex flex-wrap items-end justify-between mb-4 gap-3'
+            : 'flex flex-wrap items-end justify-between mb-6 md:mb-10 gap-4'
+        }
+      >
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-stone-900 tracking-tight">Achievements</h1>
-          <p className="text-stone-400 text-sm mt-2">
+          <h1 className={embedded ? 'text-xl font-bold text-stone-900 tracking-tight' : 'text-2xl md:text-3xl font-bold text-stone-900 tracking-tight'}>
+            Achievements
+          </h1>
+          <p className={`text-stone-400 ${embedded ? 'text-xs mt-1' : 'text-sm mt-2'}`}>
             Milestone badges earned across your job search.
           </p>
         </div>
         {achievements.length > 0 && (
           <div className="shrink-0 text-right">
-            <div className="text-2xl font-bold text-stone-900 tabular-nums leading-none">{earned}</div>
+            <div className={embedded ? 'text-xl font-bold text-stone-900 tabular-nums leading-none' : 'text-2xl font-bold text-stone-900 tabular-nums leading-none'}>
+              {earned}
+            </div>
             <div className="text-xs text-stone-400 mt-1">of {achievements.length} started</div>
           </div>
         )}
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className={embedded ? 'grid grid-cols-1 gap-2.5 w-full' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'}>
         {achievements.map((a) => (
-          <AchievementCard key={a.id} achievement={a} />
+          <AchievementCard key={a.id} achievement={a} compact={embedded} />
         ))}
       </div>
     </div>
   );
 }
 
-function AchievementCard({ achievement: a }: { achievement: ComputedAchievement }) {
+function AchievementCard({ achievement: a, compact = false }: { achievement: ComputedAchievement; compact?: boolean }) {
   const style      = TIER_STYLE[a.currentTier.name] ?? TIER_STYLE['Bronze 1'];
   const isPlatinum = !a.nextTier;
   const Icon       = ACHIEVEMENT_ICONS[a.id] ?? Trophy;
@@ -138,19 +155,19 @@ function AchievementCard({ achievement: a }: { achievement: ComputedAchievement 
   return (
     <div
       className={`
-        group relative flex flex-col items-center text-center
+        group relative flex flex-col items-center text-center max-w-full
         bg-white rounded-2xl border border-stone-100 overflow-hidden
         shadow-[0_2px_12px_rgba(0,0,0,0.07)]
-        hover:shadow-[0_12px_32px_rgba(0,0,0,0.13)] hover:-translate-y-1
+        ${compact ? '' : 'hover:shadow-[0_12px_32px_rgba(0,0,0,0.13)] hover:-translate-y-1'}
         transition-all duration-250
         border-t-[3px] ${style.borderTop}
         ${a.id === 'max_apps_one_day' ? 'ring-1 ring-amber-200/70 shadow-[0_2px_12px_rgba(245,158,11,0.08)]' : ''}
-        px-5 pt-8 pb-6 gap-0
+        ${compact ? 'px-4 pt-6 pb-4 gap-0' : 'px-5 pt-8 pb-6 gap-0'}
       `}
     >
       {/* Tier pill — top right */}
       <span
-        className={`absolute top-3.5 right-3.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${style.badge} whitespace-nowrap`}
+        className={`absolute ${compact ? 'top-2.5 right-2.5 text-[10px] px-2 py-0.5' : 'top-3.5 right-3.5 text-xs px-2.5 py-1'} font-semibold rounded-full border ${style.badge} whitespace-nowrap`}
       >
         {formatTierName(a.currentTier.name)}
       </span>
@@ -162,38 +179,38 @@ function AchievementCard({ achievement: a }: { achievement: ComputedAchievement 
         lightColor={palette.light}
         isPlatinum={isPlatinum}
         Icon={Icon}
-        size={124}
+        size={compact ? 92 : 124}
       />
 
       {/* Achievement name */}
-      <h3 className="font-bold text-stone-800 text-sm leading-snug mt-4 px-2">{a.name}</h3>
+      <h3 className={`font-bold text-stone-800 leading-snug px-2 ${compact ? 'text-xs mt-2' : 'text-sm mt-4'}`}>{a.name}</h3>
 
       {a.id === 'max_apps_one_day' && (
-        <p className="text-[11px] text-amber-700/90 font-medium leading-snug mt-1 px-2">{a.description}</p>
+        <p className={`text-amber-700/90 font-medium leading-snug mt-1 px-2 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>{a.description}</p>
       )}
 
       {/* Microcopy */}
-      <p className="text-xs text-stone-400 leading-snug mt-1 px-2">{microcopy}</p>
+      <p className={`text-stone-400 leading-snug mt-1 px-2 ${compact ? 'text-[10px] line-clamp-2' : 'text-xs'}`}>{microcopy}</p>
 
       {/* Count */}
-      <div className="flex flex-col items-center gap-1 mt-4">
+      <div className={`flex flex-col items-center gap-1 ${compact ? 'mt-2' : 'mt-4'}`}>
         {countLabel && (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80">{countLabel}</span>
+          <span className={`font-semibold uppercase tracking-wide text-amber-800/80 ${compact ? 'text-[9px]' : 'text-[10px]'}`}>{countLabel}</span>
         )}
         <div className="flex items-baseline gap-1.5">
-          <span className="text-4xl font-bold text-stone-900 tabular-nums leading-none">{a.count}</span>
-          <span className="text-stone-400 text-sm leading-none">
+          <span className={`font-bold text-stone-900 tabular-nums leading-none ${compact ? 'text-2xl' : 'text-4xl'}`}>{a.count}</span>
+          <span className={`text-stone-400 leading-none ${compact ? 'text-xs' : 'text-sm'}`}>
             {a.count === 1 ? a.unit : `${a.unit}s`}
           </span>
         </div>
       </div>
 
       {/* Progress / next tier */}
-      <div className="mt-auto pt-4 w-full border-t border-stone-50 mt-4">
-        <p className={`text-xs font-medium ${isPlatinum ? 'text-violet-600' : 'text-stone-400'}`}>
+      <div className={`mt-auto w-full border-t border-stone-50 ${compact ? 'pt-2 mt-2' : 'pt-4 mt-4'}`}>
+        <p className={`font-medium ${compact ? 'text-[10px]' : 'text-xs'} ${isPlatinum ? 'text-violet-600' : 'text-stone-400'}`}>
           {nextLabel}
           {!isPlatinum && (
-            <span className={`ml-1.5 font-bold ${style.accent}`}>
+            <span className={`${compact ? 'ml-1' : 'ml-1.5'} font-bold ${style.accent}`}>
               {a.progressPercent}%
             </span>
           )}

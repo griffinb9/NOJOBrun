@@ -297,7 +297,7 @@ export default function ProfilePage() {
     <div className="p-6 md:p-8 max-w-3xl mx-auto w-full pb-24 md:pb-8">
       <Link
         href="/"
-        onClick={() => setTab('profile')}
+        onClick={() => setTab('home')}
         className="md:hidden flex items-center gap-1.5 text-stone-400 hover:text-violet-600 text-sm mb-5"
       >
         <ArrowLeft size={14} /> Back
