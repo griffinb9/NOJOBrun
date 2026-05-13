@@ -61,26 +61,28 @@ export default function AuthPage() {
 
   if (confirmationSent) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center">
-          <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">
-            NOJOB
-          </span>
-          <div className="mt-8 bg-white rounded-2xl border border-stone-100 shadow-sm p-6 sm:p-8">
-            <div className="w-12 h-12 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">✉️</span>
+      <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-slate-950">
+        <AuthBackdrop />
+        <div className="relative z-10 flex min-h-screen items-start justify-center px-4 py-10 sm:items-center sm:py-12">
+          <div className="w-full max-w-md">
+            <AuthHero compact />
+            <div className="rounded-2xl border border-white/15 bg-white/[0.07] p-6 shadow-[0_24px_80px_-20px_rgba(59,130,246,0.35)] backdrop-blur-2xl sm:rounded-3xl sm:p-8">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/30 to-violet-600/40 ring-1 ring-white/20">
+                <span className="text-2xl" aria-hidden>✉️</span>
+              </div>
+              <h2 className="text-center text-lg font-bold tracking-tight text-white sm:text-xl">Check your email</h2>
+              <p className="mt-3 text-center text-sm leading-relaxed text-slate-300">
+                We sent a confirmation link to <strong className="text-white">{email}</strong>.
+                Click it to activate your account, then come back to sign in.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setConfirmationSent(false); switchMode('signin'); }}
+                className="mt-8 w-full rounded-xl bg-white/10 py-3 text-sm font-semibold text-violet-200 ring-1 ring-white/15 transition hover:bg-white/15 hover:text-white"
+              >
+                Back to sign in
+              </button>
             </div>
-            <h2 className="text-lg font-bold text-stone-800 mb-2">Check your email</h2>
-            <p className="text-stone-500 text-sm">
-              We sent a confirmation link to <strong>{email}</strong>.
-              Click it to activate your account, then come back to sign in.
-            </p>
-            <button
-              onClick={() => { setConfirmationSent(false); switchMode('signin'); }}
-              className="mt-6 text-sm text-violet-600 hover:underline"
-            >
-              Back to sign in
-            </button>
           </div>
         </div>
       </div>
@@ -90,33 +92,25 @@ export default function AuthPage() {
   const emailExists = errors.form === 'EMAIL_EXISTS';
 
   return (
-    // overflow-y-auto + items-start lets the page scroll on small screens
-    // when the keyboard is open or the form is taller than the viewport.
-    <div className="min-h-screen bg-stone-50 overflow-y-auto">
-      <div className="flex min-h-screen items-start justify-center p-4 pt-8 sm:items-center sm:pt-4">
+    <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-slate-950">
+      <AuthBackdrop />
+
+      <div className="relative z-10 flex min-h-screen flex-col items-center px-4 pb-16 pt-10 sm:justify-center sm:py-12">
         <div className="w-full max-w-md">
+          <AuthHero />
 
-          {/* Brand */}
-          <div className="text-center mb-5 sm:mb-8">
-            <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">
-              NOJOB
-            </span>
-            <p className="text-stone-400 text-sm mt-1">Your job search, simplified</p>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 sm:p-8">
-
-            {/* Mode toggle — segmented control */}
-            <div className="flex rounded-xl border border-stone-200 p-1 mb-6">
+          <div className="rounded-2xl border border-white/15 bg-white/[0.07] p-5 shadow-[0_24px_80px_-20px_rgba(99,102,241,0.4)] backdrop-blur-2xl sm:rounded-3xl sm:p-8">
+            {/* Mode toggle */}
+            <div className="mb-6 flex rounded-2xl border border-white/10 bg-slate-900/40 p-1 ring-1 ring-white/5">
               {(['signin', 'signup'] as Mode[]).map((m) => (
                 <button
                   key={m}
                   type="button"
                   onClick={() => switchMode(m)}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  className={`relative flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
                     mode === m
-                      ? 'bg-violet-600 text-white shadow-sm'
-                      : 'text-stone-500 hover:text-stone-700'
+                      ? 'bg-gradient-to-r from-blue-500 to-violet-600 text-white shadow-lg shadow-violet-500/25'
+                      : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   {m === 'signin' ? 'Log In' : 'Sign Up'}
@@ -141,17 +135,17 @@ export default function AuthPage() {
               {mode === 'signup' && (
                 <Field label="Username" error={errors.username}>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">@</span>
+                    <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-500">@</span>
                     <input
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
                       placeholder="griffinboyle"
                       autoComplete="username"
-                      className={`${inputCls(!!errors.username)} pl-8`}
+                      className={`${inputCls(!!errors.username)} pl-9`}
                     />
                   </div>
-                  <p className="text-xs text-stone-400 mt-1">3–20 characters. Letters, numbers, _ and . only.</p>
+                  <p className="mt-1.5 text-xs text-slate-500">3–20 characters. Letters, numbers, _ and . only.</p>
                 </Field>
               )}
 
@@ -193,18 +187,18 @@ export default function AuthPage() {
 
               {errors.form && (
                 emailExists ? (
-                  <div className="text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-                    <p className="text-amber-800 font-medium">An account with this email already exists.</p>
+                  <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-3 text-sm">
+                    <p className="font-medium text-amber-100">An account with this email already exists.</p>
                     <button
                       type="button"
                       onClick={() => switchMode('signin')}
-                      className="mt-1 text-violet-600 font-medium hover:underline text-sm"
+                      className="mt-2 text-sm font-semibold text-violet-300 hover:text-white hover:underline"
                     >
                       Log in instead →
                     </button>
                   </div>
                 ) : (
-                  <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                  <p className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2.5 text-sm text-red-200">
                     {errors.form}
                   </p>
                 )
@@ -213,7 +207,7 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-gradient-to-r from-blue-500 to-violet-600 text-white py-3 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 disabled:opacity-50 transition-all mt-2"
+                className="mt-3 w-full rounded-xl bg-gradient-to-r from-blue-500 via-violet-500 to-indigo-600 py-3.5 text-sm font-bold text-white shadow-[0_12px_40px_-8px_rgba(99,102,241,0.55)] transition hover:brightness-110 hover:shadow-[0_16px_48px_-8px_rgba(99,102,241,0.65)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100"
               >
                 {submitting
                   ? (mode === 'signin' ? 'Logging in…' : 'Creating account…')
@@ -222,15 +216,14 @@ export default function AuthPage() {
               </button>
             </form>
 
-            {/* Plain-text toggle — always visible below the button */}
-            <p className="text-center text-sm text-stone-400 mt-5">
+            <p className="mt-6 text-center text-sm text-slate-400">
               {mode === 'signin' ? (
                 <>
                   New here?{' '}
                   <button
                     type="button"
                     onClick={() => switchMode('signup')}
-                    className="text-violet-600 font-medium hover:underline"
+                    className="font-semibold text-violet-300 hover:text-white hover:underline"
                   >
                     Create an account
                   </button>
@@ -241,7 +234,7 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() => switchMode('signin')}
-                    className="text-violet-600 font-medium hover:underline"
+                    className="font-semibold text-violet-300 hover:text-white hover:underline"
                   >
                     Log in
                   </button>
@@ -249,24 +242,91 @@ export default function AuthPage() {
               )}
             </p>
           </div>
+
+          <p className="mt-8 text-center text-[11px] font-medium uppercase tracking-[0.2em] text-slate-600">
+            Your hunt. Your wins.
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
+function AuthBackdrop() {
+  return (
+    <>
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(99,102,241,0.35),transparent_55%),radial-gradient(ellipse_90%_60%_at_100%_50%,rgba(59,130,246,0.18),transparent_50%),radial-gradient(ellipse_80%_50%_at_0%_80%,rgba(139,92,246,0.15),transparent_45%)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -left-32 top-1/4 h-72 w-72 rounded-full bg-blue-500/20 blur-[100px]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-24 bottom-1/4 h-80 w-80 rounded-full bg-violet-600/25 blur-[110px]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 h-px w-[min(100%,48rem)] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+        aria-hidden
+      />
+    </>
+  );
+}
+
+function AuthHero({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={`text-center ${compact ? 'mb-8' : 'mb-8 sm:mb-10'}`}>
+      {/* Soft glow behind wordmark — avoids gradient text + drop-shadow quirks */}
+      <div className="relative mx-auto inline-block max-w-full px-1">
+        <span
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[min(120%,8rem)] w-[min(100%,20rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r from-blue-500/45 via-violet-500/50 to-indigo-600/40 blur-3xl"
+          aria-hidden
+        />
+        <h1
+          className={
+            compact
+              ? 'relative text-[clamp(2.5rem,12vw,3.75rem)] font-black tracking-[-0.06em] leading-[0.95]'
+              : 'relative text-[clamp(2.75rem,14vw,5.25rem)] sm:text-[clamp(3.5rem,12vw,5.75rem)] font-black tracking-[-0.07em] leading-[0.92]'
+          }
+        >
+          <span className="bg-gradient-to-br from-sky-300 via-violet-300 to-indigo-400 bg-clip-text text-transparent">
+            NOJOB
+          </span>
+        </h1>
+      </div>
+
+      <p
+        className={`mx-auto max-w-[22rem] font-semibold leading-snug tracking-tight text-slate-100 sm:max-w-lg ${
+          compact ? 'mt-3 text-base sm:text-lg' : 'mt-4 text-lg sm:text-xl md:text-2xl'
+        }`}
+      >
+        From NoJob to YesJob
+      </p>
+      {!compact && (
+        <p className="mx-auto mt-3 max-w-sm text-xs font-medium text-slate-500 sm:text-sm">
+          Track applications, prep like a pro, unlock achievements.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function inputCls(hasError: boolean) {
-  return `w-full border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition-colors ${
-    hasError ? 'border-red-300 bg-red-50' : 'border-stone-200'
+  return `w-full rounded-xl border px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/40 ${
+    hasError
+      ? 'border-red-400/50 bg-red-500/10'
+      : 'border-white/10 bg-slate-950/40 hover:border-white/15'
   }`;
 }
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-stone-700 mb-1.5">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</label>
       {children}
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      {error && <p className="mt-1 text-xs text-red-300">{error}</p>}
     </div>
   );
 }

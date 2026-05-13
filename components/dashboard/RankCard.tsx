@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   TrendingUp,
   Target,
@@ -85,15 +86,24 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
   })();
 
   return (
-    <div
-      className="group relative mb-10 overflow-hidden rounded-3xl border border-white/55 bg-[linear-gradient(152deg,#d0d9ea_0%,#c6d2e8_38%,#bac7e3_68%,#aebfe0_100%)] p-1 shadow-[0_26px_58px_-14px_rgba(30,27,75,0.15),0_8px_42px_-16px_rgba(67,56,202,0.11),0_0_0_1px_rgba(255,255,255,0.62)_inset,0_1px_0_rgba(255,255,255,0.78)_inset] ring-1 ring-indigo-950/[0.07] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_30px_64px_-12px_rgba(49,46,129,0.2),0_0_56px_rgba(99,102,241,0.14),0_0_52px_rgba(245,185,66,0.07),0_0_0_1px_rgba(255,255,255,0.65)_inset]"
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -3, transition: { type: 'spring', stiffness: 320, damping: 24 } }}
+      className="group relative mb-10 overflow-hidden rounded-3xl border border-white/60 bg-[linear-gradient(152deg,#d4ddf0_0%,#c8d4ec_35%,#bac8e6_68%,#b0c2e3_100%)] p-1 shadow-[0_28px_64px_-14px_rgba(30,27,75,0.16),0_10px_48px_-18px_rgba(67,56,202,0.12),0_0_0_1px_rgba(255,255,255,0.68)_inset,0_1px_0_rgba(255,255,255,0.82)_inset] ring-1 ring-indigo-950/[0.08] transition-shadow duration-300 ease-out hover:shadow-[0_34px_72px_-12px_rgba(49,46,129,0.22),0_0_64px_rgba(99,102,241,0.12),0_0_56px_rgba(245,185,66,0.08),0_0_0_1px_rgba(255,255,255,0.72)_inset]"
     >
       <div className="pointer-events-none absolute -left-16 -top-12 h-48 w-60 rounded-full bg-indigo-500/[0.18] blur-3xl" aria-hidden />
       <div className="pointer-events-none absolute -right-14 bottom-0 h-40 w-48 rounded-full bg-sky-500/[0.15] blur-3xl" aria-hidden />
       <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-[85%] -translate-x-1/2 rounded-[100%] bg-violet-400/[0.09] blur-2xl" aria-hidden />
-      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_95%_65%_at_50%_-5%,rgba(255,255,255,0.52),transparent_58%)]" aria-hidden />
-      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_70%_55%_at_92%_88%,rgba(99,102,241,0.11),transparent_55%)]" aria-hidden />
-      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_45%_40%_at_8%_75%,rgba(56,189,248,0.06),transparent_60%)]" aria-hidden />
+      <div
+        className="rank-card-rim-light pointer-events-none absolute inset-[4px] rounded-[1.4rem] bg-[conic-gradient(from_200deg_at_50%_50%,rgba(99,102,241,0.14),transparent_35%,rgba(56,189,248,0.08),transparent_65%,rgba(245,185,66,0.1),transparent_92%)] opacity-70 mix-blend-soft-light"
+        aria-hidden
+      />
+      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_95%_65%_at_50%_-5%,rgba(255,255,255,0.55),transparent_58%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_70%_55%_at_92%_88%,rgba(99,102,241,0.12),transparent_55%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_45%_40%_at_8%_75%,rgba(56,189,248,0.08),transparent_60%)]" aria-hidden />
 
       <div className="relative p-5 md:p-7">
         <div
@@ -103,7 +113,11 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
         <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-10">
 
           <div className="flex shrink-0 justify-center lg:justify-start">
-            <div className="transition-all duration-300 group-hover:[filter:brightness(1.02)]">
+            <motion.div
+              className="transition-all duration-300 group-hover:[filter:brightness(1.02)]"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 18 }}
+            >
               <SegmentedProgressRing percent={progressPercent} size={172} segmentCount={32} variant="light">
                 <div
                   className="flex flex-col items-center justify-center rounded-full px-3 py-3 text-center select-none"
@@ -137,7 +151,7 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
                   )}
                 </div>
               </SegmentedProgressRing>
-            </div>
+            </motion.div>
           </div>
 
           <div className="min-w-0 flex-1 space-y-4">
@@ -192,10 +206,10 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
           <div className="hidden w-px shrink-0 self-stretch lg:block [background:linear-gradient(to_bottom,transparent,rgba(99,102,241,0.28),rgba(139,92,246,0.14),rgba(56,189,248,0.1),transparent)]" />
 
           <div
-            className={`streak-widget-shell group/streak relative shrink-0 overflow-hidden rounded-2xl border bg-white/55 p-3.5 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-0.5 lg:w-[13.25rem] ${
+            className={`streak-widget-shell group/streak relative shrink-0 overflow-hidden rounded-2xl border bg-white/60 p-3.5 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-0.5 lg:w-[13.75rem] ${
               streakActive
-                ? 'border-[#F5B942]/45 ring-1 ring-[#FF8A3D]/28 ring-offset-0 streak-widget-active-glow hover:border-[#FF8A3D]/55 hover:ring-[#F5B942]/35 hover:shadow-[0_14px_36px_-10px_rgba(49,46,129,0.16),0_0_36px_rgba(249,115,22,0.2),0_0_52px_rgba(245,185,66,0.12),0_0_0_1px_rgba(255,255,255,0.68)_inset]'
-                : 'border-indigo-200/50 ring-1 ring-slate-200/60 shadow-[0_12px_32px_-10px_rgba(49,46,129,0.12),0_0_16px_rgba(245,185,66,0.04),0_0_0_1px_rgba(255,255,255,0.65)_inset] hover:shadow-[0_14px_32px_-10px_rgba(49,46,129,0.14)]'
+                ? 'border-[#F5B942]/50 ring-1 ring-[#FF8A3D]/32 ring-offset-0 streak-widget-active-glow hover:border-[#FF8A3D]/58 hover:ring-[#F5B942]/38 hover:shadow-[0_16px_40px_-10px_rgba(49,46,129,0.16),0_0_40px_rgba(249,115,22,0.22),0_0_56px_rgba(245,185,66,0.14),0_0_0_1px_rgba(255,255,255,0.72)_inset]'
+                : 'border-indigo-200/55 ring-1 ring-slate-200/65 shadow-[0_12px_32px_-10px_rgba(49,46,129,0.12),0_0_16px_rgba(245,185,66,0.04),0_0_0_1px_rgba(255,255,255,0.68)_inset] hover:shadow-[0_14px_32px_-10px_rgba(49,46,129,0.14)]'
             }`}
           >
             <div
@@ -267,24 +281,25 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
                     </defs>
                   </svg>
                   {streakActive ? (
-                    <div className="relative flex h-[3.35rem] w-[3.35rem] items-center justify-center rounded-full bg-gradient-to-b from-white/55 via-orange-50/35 to-[#ffedd5]/50 shadow-[0_6px_22px_rgba(249,115,22,0.28),0_0_0_1px_rgba(255,255,255,0.55)_inset,inset_0_-2px_8px_rgba(234,88,12,0.08)] ring-2 ring-[#FF8A3D]/40 transition-shadow duration-300 group-hover/streak:shadow-[0_8px_28px_rgba(249,115,22,0.38),0_0_28px_rgba(245,185,66,0.22),0_0_0_1px_rgba(255,255,255,0.6)_inset] sm:h-14 sm:w-14">
-                      <span className="streak-flame-aura pointer-events-none absolute inset-[-10px] rounded-full bg-gradient-to-br from-[#F5B942]/4 via-[#FF8A3D]/35 to-[#f97316]/25 blur-lg transition-opacity duration-300 group-hover/streak:opacity-90 group-hover/streak:blur-xl" />
-                      <span className="pointer-events-none absolute inset-[3px] rounded-full bg-gradient-to-t from-orange-200/25 to-transparent opacity-70" />
+                    <div className="relative flex h-[3.55rem] w-[3.55rem] items-center justify-center rounded-full bg-gradient-to-b from-white/60 via-orange-50/40 to-[#ffedd5]/55 shadow-[0_8px_28px_rgba(249,115,22,0.32),0_0_0_1px_rgba(255,255,255,0.58)_inset,inset_0_-2px_10px_rgba(234,88,12,0.1)] ring-[3px] ring-[#FF8A3D]/45 transition-shadow duration-300 group-hover/streak:shadow-[0_10px_32px_rgba(249,115,22,0.42),0_0_32px_rgba(245,185,66,0.26),0_0_0_1px_rgba(255,255,255,0.65)_inset] sm:h-[3.75rem] sm:w-[3.75rem]">
+                      <span className="pointer-events-none absolute inset-[-14px] rounded-full bg-[radial-gradient(circle,rgba(249,115,22,0.22)_0%,transparent_68%)] opacity-90" aria-hidden />
+                      <span className="streak-flame-aura pointer-events-none absolute inset-[-12px] rounded-full bg-gradient-to-br from-[#F5B942]/6 via-[#FF8A3D]/38 to-[#f97316]/28 blur-xl transition-opacity duration-300 group-hover/streak:opacity-100 group-hover/streak:blur-[1.15rem]" />
+                      <span className="pointer-events-none absolute inset-[3px] rounded-full bg-gradient-to-t from-orange-200/30 to-transparent opacity-75" />
                       <Flame
                         strokeWidth={2}
-                        className="relative z-[1] h-10 w-10 text-white streak-flame-mega-active transition-transform duration-300 group-hover/streak:scale-[1.04] sm:h-11 sm:w-11"
+                        className="relative z-[1] h-11 w-11 text-white streak-flame-mega-active transition-transform duration-300 group-hover/streak:scale-[1.06] sm:h-12 sm:w-12"
                         fill={`url(#${fireGradientId})`}
                         stroke="#9a3412"
                       />
                     </div>
                   ) : (
-                    <div className="flex h-[3.1rem] w-[3.1rem] items-center justify-center rounded-full bg-slate-100/95 ring-1 ring-slate-200/90 shadow-inner sm:h-[3.35rem] sm:w-[3.35rem]">
+                    <div className="flex h-[3.35rem] w-[3.35rem] items-center justify-center rounded-full bg-slate-100/95 ring-2 ring-slate-300/80 ring-offset-2 ring-offset-white/50 shadow-inner sm:h-[3.55rem] sm:w-[3.55rem]">
                       <Flame
-                        strokeWidth={1.85}
-                        className="h-9 w-9 text-slate-400 sm:h-10 sm:w-10"
+                        strokeWidth={2.25}
+                        className="h-10 w-10 text-slate-400 sm:h-11 sm:w-11"
                         fill="none"
                         stroke="currentColor"
-                        strokeOpacity={0.72}
+                        strokeOpacity={0.55}
                       />
                     </div>
                   )}
@@ -305,6 +320,6 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -2,10 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { LayoutDashboard, Kanban, BookOpen, Trophy, Settings, LogOut, Loader2, UserCircle, Users } from 'lucide-react';
 import SettingsModal from '@/components/ui/SettingsModal';
 import { useAuth } from '@/lib/auth';
 import { useState } from 'react';
+
+const MotionLink = motion.create(Link);
 
 const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,29 +30,41 @@ function NavLink({
   active: boolean;
 }) {
   return (
-    <Link
+    <MotionLink
       href={href}
       className={`
-        group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out
+        group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-200 ease-out
         ${active
-          ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/90'
-          : 'text-slate-600 hover:bg-slate-100/90 hover:text-slate-900'
+          ? 'text-slate-900'
+          : 'text-slate-600 hover:text-slate-900'
         }
       `}
+      whileHover={{ x: 2 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 28 }}
     >
       {active && (
-        <span
-          className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-indigo-500/90"
-          aria-hidden
+        <motion.span
+          layoutId="sidebar-nav-pill"
+          className="absolute inset-0 rounded-xl border border-white/80 bg-white/95 shadow-[0_4px_20px_-4px_rgba(99,102,241,0.18),0_0_0_1px_rgba(226,232,240,0.9)] ring-1 ring-indigo-100/70"
+          style={{ zIndex: 0 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        />
+      )}
+      {active && (
+        <motion.span
+          layoutId="sidebar-nav-accent"
+          className="absolute left-0 top-1/2 z-[2] h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-indigo-500 to-violet-500 shadow-[0_0_12px_rgba(99,102,241,0.45)]"
+          transition={{ type: 'spring', stiffness: 420, damping: 30 }}
         />
       )}
       <Icon
         size={17}
-        className={`shrink-0 transition-transform duration-200 ${active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'} ${active ? '' : 'group-hover:scale-105'}`}
+        className={`relative z-[1] shrink-0 transition-all duration-200 ${active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500'} ${active ? '' : 'group-hover:scale-105'}`}
         strokeWidth={active ? 2.25 : 2}
       />
-      <span className={active ? 'font-semibold' : ''}>{label}</span>
-    </Link>
+      <span className={`relative z-[1] ${active ? 'font-semibold' : ''}`}>{label}</span>
+    </MotionLink>
   );
 }
 
@@ -67,49 +82,57 @@ export default function Sidebar() {
   return (
     <>
       <aside
-        className="relative hidden min-h-screen w-56 shrink-0 flex-col border-r border-slate-200/80 bg-gradient-to-b from-slate-50/98 via-white to-slate-50/95 px-3 py-5 backdrop-blur-xl md:flex"
-        style={{ boxShadow: '4px 0 20px -10px rgba(15, 23, 42, 0.06)' }}
+        className="relative hidden min-h-screen w-56 shrink-0 flex-col border-r border-slate-200/70 bg-gradient-to-b from-slate-50/99 via-white to-indigo-50/[0.35] px-3 py-5 backdrop-blur-xl md:flex"
+        style={{ boxShadow: '4px 0 28px -12px rgba(15, 23, 42, 0.07)' }}
       >
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_45%_at_0%_0%,rgba(99,102,241,0.045),transparent_60%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_50%_at_0%_0%,rgba(99,102,241,0.06),transparent_58%),radial-gradient(ellipse_80%_40%_at_100%_100%,rgba(245,185,66,0.04),transparent_55%)]"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/40 to-transparent"
           aria-hidden
         />
 
-        <div className="relative px-3 mb-8">
-          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-800 via-indigo-700 to-slate-700 bg-clip-text text-transparent">
+        <div className="relative mb-8 px-3">
+          <span className="text-xl font-black tracking-tight bg-gradient-to-r from-slate-800 via-indigo-700 to-violet-700 bg-clip-text text-transparent">
             NOJOB
           </span>
-          <p className="text-xs text-slate-500 mt-0.5 font-medium">job search, simplified</p>
+          <p className="mt-0.5 text-xs font-medium text-slate-500">job search, simplified</p>
         </div>
 
-        <nav className="relative flex flex-1 flex-col gap-0.5 min-h-0">
+        <nav className="relative flex min-h-0 flex-1 flex-col gap-1">
           {nav.map(({ href, label, icon }) => (
             <NavLink key={href} href={href} label={label} icon={icon} active={pathname === href} />
           ))}
         </nav>
 
-        <div className="relative mt-auto flex flex-col gap-0.5 border-t border-slate-200/70 pt-4">
+        <div className="relative mt-auto flex flex-col gap-1 border-t border-slate-200/60 pt-4">
           <NavLink href="/profile" label="Profile" icon={UserCircle} active={pathname === '/profile'} />
 
-          <button
+          <motion.button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition-all duration-200 hover:bg-slate-100/90 hover:text-slate-800"
+            className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition-colors duration-200 hover:bg-white/80 hover:text-slate-800 hover:shadow-sm hover:shadow-indigo-500/5"
+            whileHover={{ x: 2 }}
+            whileTap={{ scale: 0.98 }}
           >
-            <Settings size={17} className="shrink-0 text-slate-400 transition-transform duration-200 group-hover:rotate-90" />
+            <Settings size={17} className="shrink-0 text-slate-400 transition-transform duration-300 group-hover:rotate-90 group-hover:text-indigo-500" />
             Settings
-          </button>
+          </motion.button>
         </div>
 
-        <button
+        <motion.button
           type="button"
           onClick={handleSignOut}
           disabled={signingOut}
-          className="relative mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-200 hover:bg-rose-50/90 hover:text-rose-600 disabled:opacity-50"
+          className="relative mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-colors duration-200 hover:bg-rose-50/95 hover:text-rose-600 disabled:opacity-50"
+          whileHover={{ x: 2 }}
+          whileTap={{ scale: 0.98 }}
         >
           {signingOut ? <Loader2 size={17} className="animate-spin" /> : <LogOut size={17} />}
           {signingOut ? 'Signing out…' : 'Sign Out'}
-        </button>
+        </motion.button>
       </aside>
 
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
