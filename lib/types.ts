@@ -19,6 +19,8 @@ export interface UserProfile {
   /** Original uploaded file name when resume text came from a file; not stored on disk. */
   resumeFileName?: string;
   resumeUpdatedAt?: string;
+  /** Public URL for profile picture (Supabase Storage). */
+  avatarUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -179,6 +181,7 @@ export interface PublicFriendSearchResult {
   fullName: string;
   currentRank: string;
   totalPoints: number;
+  avatarUrl?: string | null;
 }
 
 /** Safe stats for an accepted friend (from RPC or friend progress read). */
@@ -193,6 +196,7 @@ export interface PublicFriendCard {
   longestStreak: number;
   currentStreak: number;
   maxAppsOneDay: number;
+  avatarUrl?: string | null;
 }
 
 /** Incoming friend request row (public fields only). */
@@ -204,6 +208,7 @@ export interface IncomingFriendPreview {
   fullName: string;
   currentRank: string;
   totalPoints: number;
+  avatarUrl?: string | null;
 }
 
 export type FriendshipStatus = 'pending' | 'accepted' | 'declined' | 'blocked';
@@ -225,6 +230,7 @@ export interface WeeklyAppsLeaderboardEntry {
   fullName: string;
   currentRank: string;
   appsThisWeek: number;
+  avatarUrl?: string | null;
 }
 
 export interface RankTier {

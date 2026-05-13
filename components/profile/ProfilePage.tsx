@@ -14,6 +14,8 @@ import {
   Loader2,
   Check,
   AlertCircle,
+  Camera,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -28,13 +30,17 @@ import {
   sanitizeResumeText,
 } from '@/lib/resume';
 import { useMobileNav } from '@/lib/mobile-nav';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function ProfilePage() {
   const { user, profile, refreshProfile } = useAuth();
   const { setTab } = useMobileNav();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarErr, setAvatarErr] = useState<string | null>(null);
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -124,6 +130,7 @@ export default function ProfilePage() {
         resumeUpdatedAt: p.resumeUpdatedAt,
         appliedManualSort: p.appliedManualSort,
         trackerColumnOrder: p.trackerColumnOrder,
+        avatarUrl: p.avatarUrl,
         createdAt: p.createdAt,
         updatedAt: ts,
       }, { omitResumeOnSchemaError: true });
@@ -246,6 +253,7 @@ export default function ProfilePage() {
         displayName: p.displayName,
         appliedManualSort: p.appliedManualSort,
         trackerColumnOrder: p.trackerColumnOrder,
+        avatarUrl: p.avatarUrl,
         resumeText: text || undefined,
         resumeFileName: text ? resumeFileName : undefined,
         resumeUpdatedAt: text ? ts : undefined,
@@ -275,6 +283,36 @@ export default function ProfilePage() {
     setDraftText(value.slice(0, RESUME_MAX_CHARS));
     setFileNameFromUpload(undefined);
     setResumeMessage(null);
+  }
+
+  async function onAvatarChosen(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarErr(null);
+    setAvatarBusy(true);
+    try {
+      await db.uploadProfileAvatar(file);
+      await refreshProfile();
+    } catch (err) {
+      setAvatarErr(err instanceof Error ? err.message : 'Could not upload photo.');
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function removeAvatar() {
+    if (!p.avatarUrl) return;
+    setAvatarErr(null);
+    setAvatarBusy(true);
+    try {
+      await db.clearProfileAvatar();
+      await refreshProfile();
+    } catch (err) {
+      setAvatarErr(err instanceof Error ? err.message : 'Could not remove photo.');
+    } finally {
+      setAvatarBusy(false);
+    }
   }
 
   const createdLabel = p.createdAt
@@ -326,6 +364,59 @@ export default function ProfilePage() {
       )}
 
       <div className="space-y-6">
+        {/* Profile photo */}
+        <section className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-stone-100 bg-gradient-to-r from-slate-50/80 to-white">
+            <h2 className="font-semibold text-stone-800 text-sm flex items-center gap-2">
+              <Camera size={16} className="text-violet-500" />
+              Profile picture
+            </h2>
+            <p className="text-xs text-stone-500 mt-1">PNG, JPG, or WebP · max 5 MB · shown to friends and on your dashboard.</p>
+          </div>
+          <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-6">
+            <UserAvatar
+              src={p.avatarUrl}
+              fullName={fullName}
+              displayName={displayNameDraft}
+              username={usernameDraft}
+              size="xl"
+              className="ring-2 ring-stone-200/90 shadow-lg mx-auto sm:mx-0"
+            />
+            <div className="flex flex-col gap-3 flex-1 min-w-0">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                className="hidden"
+                onChange={onAvatarChosen}
+              />
+              <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                <button
+                  type="button"
+                  disabled={avatarBusy}
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-800 hover:bg-violet-100 disabled:opacity-50"
+                >
+                  {avatarBusy ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                  {p.avatarUrl ? 'Change photo' : 'Upload photo'}
+                </button>
+                {p.avatarUrl && (
+                  <button
+                    type="button"
+                    disabled={avatarBusy}
+                    onClick={() => void removeAvatar()}
+                    className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+                  >
+                    <Trash2 size={16} />
+                    Remove
+                  </button>
+                )}
+              </div>
+              {avatarErr && <p className="text-xs text-red-600 font-medium">{avatarErr}</p>}
+            </div>
+          </div>
+        </section>
+
         {/* Account */}
         <section className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-stone-100 bg-gradient-to-r from-slate-50/80 to-white">

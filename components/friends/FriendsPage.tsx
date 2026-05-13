@@ -25,6 +25,7 @@ import { useMobileNav } from '@/lib/mobile-nav';
 import FriendProfileModal from '@/components/friends/FriendProfileModal';
 import WeeklyLeaderboard from '@/components/friends/WeeklyLeaderboard';
 import type { RankedWeeklyEntry } from '@/components/friends/WeeklyLeaderboard';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 function rankBadgeClass(rank: string): string {
   const r = rank.toLowerCase();
@@ -327,6 +328,14 @@ export default function FriendsPage() {
                       key={r.id}
                       className="flex flex-wrap items-center gap-3 rounded-xl border border-stone-100 bg-stone-50/80 px-3 py-3"
                     >
+                      <UserAvatar
+                        src={r.avatarUrl}
+                        fullName={r.fullName}
+                        displayName={r.displayName}
+                        username={r.username}
+                        size="md"
+                        className="shrink-0 ring-2 ring-white shadow-sm"
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-stone-800 truncate">
                           {publicDisplayLabel({ displayName: r.displayName, fullName: r.fullName })}
@@ -379,7 +388,16 @@ export default function FriendsPage() {
                   key={req.friendshipId}
                   className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-fuchsia-100 bg-white/80 px-4 py-3 shadow-sm"
                 >
-                  <div>
+                  <div className="flex items-start gap-3 min-w-0">
+                    <UserAvatar
+                      src={req.avatarUrl}
+                      fullName={req.fullName}
+                      displayName={req.displayName}
+                      username={req.username}
+                      size="md"
+                      className="shrink-0 ring-2 ring-fuchsia-100"
+                    />
+                    <div className="min-w-0">
                     <p className="font-semibold text-stone-800">
                       {publicDisplayLabel({ displayName: req.displayName, fullName: req.fullName })}
                     </p>
@@ -389,6 +407,7 @@ export default function FriendsPage() {
                     <p className="text-xs text-stone-500 mt-1">
                       {req.currentRank} · {req.totalPoints} pts
                     </p>
+                    </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button
@@ -475,7 +494,16 @@ export default function FriendsPage() {
                         className="w-full text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/90 transition-colors hover:bg-stone-50/50"
                       >
                         <div className={`px-4 py-3 bg-gradient-to-r ${rankBadgeClass(card.currentRank)} text-white`}>
-                          <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-3">
+                            <UserAvatar
+                              src={card.avatarUrl}
+                              fullName={card.fullName}
+                              displayName={card.displayName}
+                              username={card.username}
+                              size="lg"
+                              className="shrink-0 ring-2 ring-white/40 shadow-lg"
+                            />
+                            <div className="flex items-start justify-between gap-2 flex-1 min-w-0">
                             <div>
                               <p className="font-bold text-lg leading-tight">
                                 {publicDisplayLabel({ displayName: card.displayName, fullName: card.fullName })}
@@ -485,6 +513,7 @@ export default function FriendsPage() {
                             <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold uppercase tracking-wide">
                               {card.currentRank}
                             </span>
+                            </div>
                           </div>
                         </div>
                         <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">

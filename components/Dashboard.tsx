@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   Plus,
-  Flame,
   Briefcase,
   Percent,
   CalendarDays,
@@ -19,6 +18,7 @@ import { useAuth } from '@/lib/auth';
 import { Job, STATUS_COLORS, STATUS_BORDER, STATUS_LABELS, UserProgress } from '@/lib/types';
 import JobFormModal from './jobs/JobFormModal';
 import RankCard from './dashboard/RankCard';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { computeJobStreak } from '@/lib/job-streak';
 import { formatDate, daysSince, getDashboardTitle } from '@/lib/utils';
 import { getRank } from '@/lib/points';
@@ -314,17 +314,17 @@ export default function Dashboard() {
 
             <div className="relative mt-4 flex min-w-0 cursor-default items-start gap-3 sm:items-center sm:gap-3.5">
               <motion.div
-                className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-white to-indigo-50/90 shadow-[0_8px_24px_-6px_rgba(99,102,241,0.35),0_0_0_1px_rgba(255,255,255,0.9)_inset] ring-1 ring-indigo-200/70 sm:h-12 sm:w-12"
-                whileHover={{ scale: 1.06, rotate: -4 }}
+                whileHover={{ scale: 1.04 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+                className="shrink-0"
               >
-                <span
-                  className="pointer-events-none absolute inset-[-6px] rounded-[inherit] bg-gradient-to-br from-indigo-400/25 to-amber-300/20 opacity-60 blur-lg"
-                  aria-hidden
-                />
-                <Flame
-                  strokeWidth={2}
-                  className="relative h-[22px] w-[22px] shrink-0 text-indigo-600 drop-shadow-[0_0_12px_rgba(99,102,241,0.35),0_0_16px_rgba(233,169,61,0.22)] sm:h-[26px] sm:w-[26px]"
+                <UserAvatar
+                  src={profile.avatarUrl}
+                  fullName={profile.fullName}
+                  displayName={profile.displayName}
+                  username={profile.username}
+                  size="lg"
+                  className="ring-2 ring-indigo-200/80 shadow-[0_8px_24px_-6px_rgba(99,102,241,0.35)]"
                 />
               </motion.div>
               <div className="min-w-0 flex-1">

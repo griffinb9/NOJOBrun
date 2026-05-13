@@ -4,6 +4,7 @@ import { ListOrdered } from 'lucide-react';
 import type { WeeklyAppsLeaderboardEntry } from '@/lib/types';
 import { publicDisplayLabel } from '@/lib/public-profile';
 import { formatUsernameAt } from '@/lib/username';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 export type RankedWeeklyEntry = WeeklyAppsLeaderboardEntry & { displayRank: number };
 
@@ -14,14 +15,6 @@ function rankBadgeClass(rank: string): string {
   if (r.includes('locked')) return 'from-violet-500 to-fuchsia-500';
   if (r.includes('rise')) return 'from-sky-400 to-blue-600';
   return 'from-slate-400 to-slate-600';
-}
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((n) => n[0]?.toUpperCase() ?? '')
-    .join('') || '?';
 }
 
 interface Props {
@@ -103,12 +96,14 @@ export default function WeeklyLeaderboard({
                     </td>
                     <td className="py-3 pr-2">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className={`shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white bg-gradient-to-br shadow-inner ${rankBadgeClass(row.currentRank)}`}
-                          aria-hidden
-                        >
-                          {initials(label)}
-                        </div>
+                        <UserAvatar
+                          src={row.avatarUrl}
+                          fullName={row.fullName}
+                          displayName={row.displayName}
+                          username={row.username}
+                          size="md"
+                          className="shrink-0 ring-2 ring-stone-200/80 shadow-sm"
+                        />
                         <div className="min-w-0">
                           <p className="font-semibold text-stone-900 truncate">
                             {label}

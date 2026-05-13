@@ -147,6 +147,8 @@ create policy "own point_events" on public.point_events
 alter table public.user_profiles add column if not exists username text;
 alter table public.user_profiles add column if not exists display_name text;
 
+alter table public.user_profiles add column if not exists avatar_url text;
+
 create unique index if not exists user_profiles_username_lower_key
   on public.user_profiles (lower(btrim(username)))
   where username is not null and btrim(username) <> '';
@@ -264,6 +266,12 @@ $$;
 revoke all on function public.is_username_available(text) from public;
 grant execute on function public.is_username_available(text) to anon, authenticated;
 
+-- OUT / returns table shape changed (avatar_url). PG cannot CREATE OR REPLACE a different row type.
+drop function if exists public.search_profiles_by_username(text, integer);
+drop function if exists public.get_accepted_friend_public_cards(uuid[]);
+drop function if exists public.get_pending_incoming_friend_requests();
+drop function if exists public.get_weekly_applications_leaderboard(date, date, text);
+
 -- Search by handle: returns only public columns (no email / resume).
 create or replace function public.search_profiles_by_username(p_term text, p_limit integer default 20)
 returns table (
@@ -272,7 +280,8 @@ returns table (
   display_name text,
   full_name text,
   current_rank text,
-  total_points integer
+  total_points integer,
+  avatar_url text
 )
 language plpgsql
 stable
@@ -297,7 +306,8 @@ begin
     p.display_name,
     p.full_name,
     pr.current_rank,
-    pr.total_points
+    pr.total_points,
+    p.avatar_url
   from public.user_profiles p
   inner join public.user_progress pr on pr.user_id = p.id
   where p.id <> auth.uid()
@@ -324,7 +334,8 @@ returns table (
   current_streak integer,
   longest_streak integer,
   max_apps_one_day integer,
-  achievements_unlocked_count integer
+  achievements_unlocked_count integer,
+  avatar_url text
 )
 language sql
 stable
@@ -341,7 +352,8 @@ as $$
     pr.current_streak,
     pr.longest_streak,
     pr.max_apps_one_day,
-    pr.achievements_unlocked_count
+    pr.achievements_unlocked_count,
+    p.avatar_url
   from public.user_profiles p
   inner join public.user_progress pr on pr.user_id = p.id
   where p.id = any(p_friend_ids)
@@ -369,7 +381,8 @@ returns table (
   display_name text,
   full_name text,
   current_rank text,
-  total_points integer
+  total_points integer,
+  avatar_url text
 )
 language sql
 stable
@@ -383,7 +396,8 @@ as $$
     p.display_name,
     p.full_name,
     pr.current_rank,
-    pr.total_points
+    pr.total_points,
+    p.avatar_url
   from public.friendships f
   inner join public.user_profiles p on p.id = f.requester_id
   inner join public.user_progress pr on pr.user_id = f.requester_id
@@ -504,7 +518,8 @@ returns table (
   display_name text,
   full_name text,
   current_rank text,
-  apps_this_week bigint
+  apps_this_week bigint,
+  avatar_url text
 )
 language plpgsql
 stable
@@ -544,7 +559,8 @@ begin
     p.display_name,
     p.full_name,
     pr.current_rank,
-    coalesce(ct.n, 0)::bigint
+    coalesce(ct.n, 0)::bigint,
+    p.avatar_url
   from cohort co
   inner join public.user_profiles p on p.id = co.uid
   inner join public.user_progress pr on pr.user_id = co.uid
@@ -555,3 +571,55 @@ $$;
 
 revoke all on function public.get_weekly_applications_leaderboard(date, date, text) from public;
 grant execute on function public.get_weekly_applications_leaderboard(date, date, text) to authenticated;
+
+-- ── Profile pictures (Storage) ──────────────────────────────────────────────
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'profile-pictures',
+  'profile-pictures',
+  true,
+  5242880,
+  array['image/png', 'image/jpeg', 'image/webp']::text[]
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "profile_pictures_select_public" on storage.objects;
+create policy "profile_pictures_select_public"
+  on storage.objects for select
+  to public
+  using (bucket_id = 'profile-pictures');
+
+drop policy if exists "profile_pictures_insert_own" on storage.objects;
+create policy "profile_pictures_insert_own"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'profile-pictures'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "profile_pictures_update_own" on storage.objects;
+create policy "profile_pictures_update_own"
+  on storage.objects for update
+  to authenticated
+  using (
+    bucket_id = 'profile-pictures'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'profile-pictures'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "profile_pictures_delete_own" on storage.objects;
+create policy "profile_pictures_delete_own"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'profile-pictures'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );

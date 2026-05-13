@@ -18,6 +18,7 @@ import { useMobileNav } from '@/lib/mobile-nav';
 import JobFormModal from '@/components/jobs/JobFormModal';
 import JobStreakCard from '@/components/dashboard/JobStreakCard';
 import { computeJobStreak } from '@/lib/job-streak';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 const RANK_ICONS: Record<string, LucideIcon> = {
   'Underdog':      Rocket,
@@ -171,9 +172,19 @@ export default function MobileHome() {
           Hey, {firstName}
         </p>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent leading-tight">
-            Your Job Hunt
-          </h1>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <UserAvatar
+              src={profile.avatarUrl}
+              fullName={profile.fullName}
+              displayName={profile.displayName}
+              username={profile.username}
+              size="sm"
+              className="shrink-0 ring-2 ring-violet-100"
+            />
+            <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent leading-tight min-w-0">
+              Your Job Hunt
+            </h1>
+          </div>
           <button
             onClick={() => setAddOpen(true)}
             className="flex items-center gap-1.5 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-3.5 py-2 rounded-xl text-sm font-semibold shrink-0 active:scale-95 transition-transform"
@@ -284,7 +295,7 @@ export default function MobileHome() {
         {/* ── Today's Focus ────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-stone-50">
-            <h2 className="text-sm font-bold text-stone-800">Today's Focus</h2>
+            <h2 className="text-sm font-bold text-stone-800">Today&apos;s Focus</h2>
           </div>
           <div className="divide-y divide-stone-50">
             {focusItems.map((item, i) => (

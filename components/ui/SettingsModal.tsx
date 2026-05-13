@@ -48,13 +48,9 @@ export default function SettingsModal({ open, onClose, onProfileSaved }: Props) 
     if (nameTrimmed && user && profile) {
       const ts = now();
       await db.saveProfile({
-        id: user.id,
+        ...profile,
         fullName: nameTrimmed,
         email: emailTrimmed.toLowerCase() || profile.email || user.email || '',
-        resumeText: profile.resumeText,
-        resumeFileName: profile.resumeFileName,
-        resumeUpdatedAt: profile.resumeUpdatedAt,
-        createdAt: profile.createdAt,
         updatedAt: ts,
       }, { omitResumeOnSchemaError: true });
 

@@ -15,6 +15,7 @@ import {
   TIER_STYLE,
 } from '@/lib/achievements';
 import AchievementBadge from '@/components/ui/AchievementBadge';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
   jobs_applied: Send,
@@ -154,19 +155,31 @@ export default function FriendProfileModal({ open, onClose, card }: Props) {
 
         <div className="overflow-y-auto flex-1 overscroll-contain">
           <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 text-white px-5 py-6">
-            <p className="text-xl font-bold leading-tight">
-              {publicDisplayLabel({ displayName: card.displayName, fullName: card.fullName })}
-            </p>
-            <p className="text-white/90 text-sm font-medium mt-1">{formatUsernameAt(card.username)}</p>
-            <div className="flex flex-wrap gap-2 mt-4 text-xs font-semibold">
-              <span className="rounded-full bg-white/20 px-3 py-1">{card.currentRank}</span>
-              <span className="rounded-full bg-white/20 px-3 py-1">{card.totalPoints} pts</span>
-              <span className="rounded-full bg-white/20 px-3 py-1">{card.currentStreak}d current streak</span>
-              <span className="rounded-full bg-white/20 px-3 py-1">{card.longestStreak}d best streak</span>
+            <div className="flex items-start gap-4">
+              <UserAvatar
+                src={card.avatarUrl}
+                fullName={card.fullName}
+                displayName={card.displayName}
+                username={card.username}
+                size="xl"
+                className="ring-2 ring-white/50 shadow-xl shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-xl font-bold leading-tight">
+                  {publicDisplayLabel({ displayName: card.displayName, fullName: card.fullName })}
+                </p>
+                <p className="text-white/90 text-sm font-medium mt-1">{formatUsernameAt(card.username)}</p>
+                <div className="flex flex-wrap gap-2 mt-4 text-xs font-semibold">
+                  <span className="rounded-full bg-white/20 px-3 py-1">{card.currentRank}</span>
+                  <span className="rounded-full bg-white/20 px-3 py-1">{card.totalPoints} pts</span>
+                  <span className="rounded-full bg-white/20 px-3 py-1">{card.currentStreak}d current streak</span>
+                  <span className="rounded-full bg-white/20 px-3 py-1">{card.longestStreak}d best streak</span>
+                </div>
+                <p className="text-[11px] text-white/75 mt-3 leading-relaxed">
+                  Badges reflect public stats only — no companies, roles, or private notes.
+                </p>
+              </div>
             </div>
-            <p className="text-[11px] text-white/75 mt-3 leading-relaxed">
-              Badges reflect public stats only — no companies, roles, or private notes.
-            </p>
           </div>
 
           <div className="p-4 md:p-6">

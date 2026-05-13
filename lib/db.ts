@@ -24,6 +24,16 @@ import { normalizeTrackerColumnOrder } from './trackerColumns';
 import { computeJobStreak } from './job-streak';
 import { maxApplicationsInOneDay, countUnlockedAchievements } from './friend-stats';
 import { now } from './utils';
+import { validateAvatarFile, avatarFileExtension } from './avatar';
+
+const PROFILE_AVATAR_BUCKET = 'profile-pictures';
+
+async function removeStoredAvatarFiles(userId: string): Promise<void> {
+  const { data: files } = await supabase.storage.from(PROFILE_AVATAR_BUCKET).list(userId);
+  if (!files?.length) return;
+  const paths = files.map((f) => `${userId}/${f.name}`);
+  await supabase.storage.from(PROFILE_AVATAR_BUCKET).remove(paths);
+}
 
 // ── Row shapes (snake_case from Postgres) ────────────────────────────────────
 
@@ -31,6 +41,7 @@ interface ProfileRow {
   id: string; full_name: string; email: string;
   username: string | null;
   display_name: string | null;
+  avatar_url: string | null;
   resume_text: string | null;
   resume_file_name: string | null;
   resume_updated_at: string | null;
@@ -89,6 +100,7 @@ function rowToProfile(r: ProfileRow): UserProfile {
     id: r.id, fullName: r.full_name, email: r.email,
     username: r.username?.trim() ? r.username.trim().toLowerCase() : undefined,
     displayName: r.display_name?.trim() ? r.display_name.trim() : undefined,
+    avatarUrl: r.avatar_url?.trim() ? r.avatar_url.trim() : undefined,
     appliedManualSort: r.applied_manual_sort ?? false,
     trackerColumnOrder: (() => {
       const raw = r.tracker_column_order;
@@ -108,6 +120,7 @@ function profileToRow(p: UserProfile): ProfileRow {
     id: p.id, full_name: p.fullName, email: p.email,
     username: p.username?.trim() ? p.username.trim().toLowerCase() : null,
     display_name: p.displayName?.trim() ? p.displayName.trim() : null,
+    avatar_url: p.avatarUrl?.trim() ? p.avatarUrl.trim() : null,
     resume_text: p.resumeText ?? null,
     resume_file_name: p.resumeFileName ?? null,
     resume_updated_at: p.resumeUpdatedAt ?? null,
@@ -125,6 +138,7 @@ function profileToMinimalRow(p: UserProfile): Pick<
   | 'email'
   | 'username'
   | 'display_name'
+  | 'avatar_url'
   | 'created_at'
   | 'updated_at'
 > {
@@ -134,6 +148,7 @@ function profileToMinimalRow(p: UserProfile): Pick<
     email: p.email,
     username: p.username?.trim() ? p.username.trim().toLowerCase() : null,
     display_name: p.displayName?.trim() ? p.displayName.trim() : null,
+    avatar_url: p.avatarUrl?.trim() ? p.avatarUrl.trim() : null,
     created_at: p.createdAt,
     updated_at: p.updatedAt,
   };
@@ -314,6 +329,40 @@ export const db = {
     }
 
     throw new Error(formatProfileSaveError(msg));
+  },
+
+  async uploadProfileAvatar(file: File): Promise<string> {
+    const msg = validateAvatarFile(file);
+    if (msg) throw new Error(msg);
+    const userId = await uid();
+    const ext = avatarFileExtension(file);
+    if (!ext) throw new Error('Use a PNG, JPG, or WebP image.');
+    await removeStoredAvatarFiles(userId);
+    const path = `${userId}/avatar.${ext}`;
+    const mime = (file.type || '').toLowerCase().split(';')[0].trim();
+    const contentType =
+      mime || (ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg');
+    const { error: upErr } = await supabase.storage.from(PROFILE_AVATAR_BUCKET).upload(path, file, {
+      upsert: true,
+      contentType,
+    });
+    if (upErr) throw new Error(upErr.message);
+    const { data: pub } = supabase.storage.from(PROFILE_AVATAR_BUCKET).getPublicUrl(path);
+    const base = pub.publicUrl;
+    const publicUrl = `${base}${base.includes('?') ? '&' : '?'}v=${Date.now()}`;
+    const profile = await db.getProfile();
+    if (!profile) throw new Error('Profile not found.');
+    const ts = now();
+    await db.saveProfile({ ...profile, avatarUrl: publicUrl, updatedAt: ts });
+    return publicUrl;
+  },
+
+  async clearProfileAvatar(): Promise<void> {
+    const userId = await uid();
+    await removeStoredAvatarFiles(userId);
+    const profile = await db.getProfile();
+    if (!profile) return;
+    await db.saveProfile({ ...profile, avatarUrl: undefined, updatedAt: now() });
   },
 
   // ── Jobs ───────────────────────────────────────────────────────────────────
@@ -531,6 +580,7 @@ export const db = {
       full_name: string;
       current_rank: string;
       total_points: number;
+      avatar_url: string | null;
     }[];
     return rows.map((r) => ({
       id: r.id,
@@ -539,6 +589,7 @@ export const db = {
       fullName: r.full_name,
       currentRank: r.current_rank,
       totalPoints: r.total_points,
+      avatarUrl: r.avatar_url ?? null,
     }));
   },
 
@@ -651,6 +702,7 @@ export const db = {
       longest_streak: number;
       max_apps_one_day: number;
       achievements_unlocked_count: number;
+      avatar_url: string | null;
     }[];
     return rows.map((r) => ({
       userId: r.user_id,
@@ -663,6 +715,7 @@ export const db = {
       longestStreak: r.longest_streak,
       currentStreak: r.current_streak,
       maxAppsOneDay: r.max_apps_one_day,
+      avatarUrl: r.avatar_url ?? null,
     }));
   },
 
@@ -677,6 +730,7 @@ export const db = {
       full_name: string;
       current_rank: string;
       total_points: number;
+      avatar_url: string | null;
     }[];
     return rows.map((r) => ({
       friendshipId: r.friendship_id,
@@ -686,6 +740,7 @@ export const db = {
       fullName: r.full_name,
       currentRank: r.current_rank,
       totalPoints: r.total_points,
+      avatarUrl: r.avatar_url ?? null,
     }));
   },
 
@@ -743,6 +798,7 @@ export const db = {
       full_name: string;
       current_rank: string;
       apps_this_week: number | string;
+      avatar_url: string | null;
     }[];
     return rows.map((r) => ({
       userId: r.user_id,
@@ -751,6 +807,7 @@ export const db = {
       fullName: r.full_name,
       currentRank: r.current_rank,
       appsThisWeek: typeof r.apps_this_week === 'number' ? r.apps_this_week : Number(r.apps_this_week) || 0,
+      avatarUrl: r.avatar_url ?? null,
     }));
   },
 };

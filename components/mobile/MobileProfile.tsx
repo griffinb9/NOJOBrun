@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import SettingsModal from '@/components/ui/SettingsModal';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function MobileProfile() {
   const router = useRouter();
@@ -21,21 +22,21 @@ export default function MobileProfile() {
 
   if (!profile) return null;
 
-  const initials = profile.fullName
-    .split(' ')
-    .slice(0, 2)
-    .map((n) => n[0]?.toUpperCase() ?? '')
-    .join('');
-
   const hasResume = !!profile.resumeText?.trim();
 
   return (
     <div className="min-h-full bg-stone-50">
       {/* Header */}
       <div className="bg-white px-5 pt-10 pb-6 border-b border-stone-100 text-center">
-        {/* Avatar */}
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-3 shadow-md">
-          <span className="text-white font-extrabold text-xl tracking-tight">{initials || '?'}</span>
+        <div className="flex justify-center mb-3">
+          <UserAvatar
+            src={profile.avatarUrl}
+            fullName={profile.fullName}
+            displayName={profile.displayName}
+            username={profile.username}
+            size="xl"
+            className="ring-4 ring-violet-100 shadow-lg"
+          />
         </div>
         <h1 className="text-lg font-bold text-stone-900">{profile.fullName || 'Your Profile'}</h1>
         <p className="text-sm text-stone-400 mt-0.5">{profile.email}</p>
