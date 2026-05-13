@@ -25,6 +25,8 @@ export interface ComputedAchievement extends AchievementDef {
   nextTier: Tier | null;
   progressPercent: number;
   toNextTier: number | null;
+  /** True when count is below the first tier threshold (e.g. 0 rejections before Bronze I). */
+  preFirstTier?: boolean;
 }
 
 export interface TierStyle {
@@ -181,6 +183,22 @@ const TIERS_LONGEST_STREAK: Tier[] = [
   ...platinumThree(90, 120),
 ];
 
+/** Logged rejections only (applications.status = rejected). First tier starts at 1. */
+const TIERS_RESILIENCE: Tier[] = [
+  { name: 'Bronze 1', min: 1 },
+  { name: 'Bronze 2', min: 5 },
+  { name: 'Bronze 3', min: 10 },
+  { name: 'Silver 1', min: 25 },
+  { name: 'Silver 2', min: 50 },
+  { name: 'Silver 3', min: 75 },
+  { name: 'Gold 1', min: 100 },
+  { name: 'Gold 2', min: 150 },
+  { name: 'Gold 3', min: 250 },
+  { name: 'Platinum 1', min: 400 },
+  { name: 'Platinum 2', min: 600 },
+  { name: 'Platinum 3', min: 1000 },
+];
+
 export const LONGEST_STREAK_ACHIEVEMENT_DEF: AchievementDef = {
   id: 'longest_streak',
   name: 'Longest Streak',
@@ -196,6 +214,7 @@ export const FRIEND_ACHIEVEMENT_DISPLAY_ORDER = [
   'interviews',
   'offers',
   'follow_ups',
+  'resilience',
   'prep_kits',
   'star_stories',
   'longest_streak',
@@ -248,6 +267,13 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     tiers: TIERS_FOLLOW_UPS,
   },
   {
+    id: 'resilience',
+    name: 'Resilience',
+    description: 'Every rejection gets you closer.',
+    unit: 'rejection',
+    tiers: TIERS_RESILIENCE,
+  },
+  {
     id: 'prep_kits',
     name: 'Prep Kits Generated',
     description: 'Preparation is the difference between hoping and knowing.',
@@ -263,13 +289,68 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
   },
 ];
 
+function toRomanNumeral(num: number): string {
+  const map = [
+    { value: 10, symbol: 'X' },
+    { value: 9, symbol: 'IX' },
+    { value: 5, symbol: 'V' },
+    { value: 4, symbol: 'IV' },
+    { value: 1, symbol: 'I' },
+  ];
+  let n = num;
+  let result = '';
+  for (const { value, symbol } of map) {
+    while (n >= value) {
+      result += symbol;
+      n -= value;
+    }
+  }
+  return result;
+}
+
+/** "Bronze 1" → "Bronze I" for achievement tier pills and copy. */
+export function formatTierNameDisplay(tierName: string): string {
+  const match = tierName.match(/^(.*)\s(\d+)$/);
+  if (!match) return tierName;
+  return `${match[1]} ${toRomanNumeral(parseInt(match[2], 10))}`;
+}
+
+export function achievementTierPillText(a: ComputedAchievement): string {
+  if (a.preFirstTier) return 'On your path';
+  return formatTierNameDisplay(a.currentTier.name);
+}
+
 export function computeAchievement(def: AchievementDef, count: number): ComputedAchievement {
   const tiers = def.tiers;
+  const safeCount = Math.max(0, Math.floor(Number(count)));
 
-  // Find the highest tier whose min <= count
+  if (tiers.length === 0) {
+    throw new Error('achievement has no tiers');
+  }
+
+  if (tiers[0].min > 0 && safeCount < tiers[0].min) {
+    const nextTier = tiers[0];
+    const denom = Math.max(1, nextTier.min);
+    const progressPercent = Math.min(99, Math.round((safeCount / denom) * 100));
+    const toNextTier = nextTier.min - safeCount;
+    return {
+      ...def,
+      count: safeCount,
+      currentTier: { name: 'Bronze 1', min: 0 },
+      nextTier,
+      progressPercent,
+      toNextTier,
+      preFirstTier: true,
+    };
+  }
+
+  // Highest tier whose min <= count
   let currentIdx = 0;
   for (let i = tiers.length - 1; i >= 0; i--) {
-    if (count >= tiers[i].min) { currentIdx = i; break; }
+    if (safeCount >= tiers[i].min) {
+      currentIdx = i;
+      break;
+    }
   }
 
   const currentTier = tiers[currentIdx];
@@ -281,11 +362,20 @@ export function computeAchievement(def: AchievementDef, count: number): Computed
   if (nextTier) {
     const rangeStart = currentTier.min;
     const rangeEnd = nextTier.min;
-    progressPercent = Math.min(100, Math.round(((count - rangeStart) / (rangeEnd - rangeStart)) * 100));
-    toNextTier = rangeEnd - count;
+    const span = Math.max(1, rangeEnd - rangeStart);
+    progressPercent = Math.min(100, Math.round(((safeCount - rangeStart) / span) * 100));
+    toNextTier = rangeEnd - safeCount;
   }
 
-  return { ...def, count, currentTier, nextTier, progressPercent, toNextTier };
+  return {
+    ...def,
+    count: safeCount,
+    currentTier,
+    nextTier,
+    progressPercent,
+    toNextTier,
+    preFirstTier: false,
+  };
 }
 
 export function computeFriendAchievementsFromCounts(
@@ -349,6 +439,7 @@ export function computeAllAchievements({ jobs, pointEvents, stories }: Achieveme
       case 'interviews':         count = countByType('status_interviewing'); break;
       case 'offers':             count = countByType('status_offer'); break;
       case 'follow_ups':         count = countByType('follow_up_sent'); break;
+      case 'resilience':          count = jobs.filter((j) => j.status === 'rejected').length; break;
       case 'prep_kits':          count = countByType('interview_prep_generated'); break;
       case 'star_stories':       count = stories.length; break;
     }

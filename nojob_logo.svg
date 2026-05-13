@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="360" viewBox="0 0 680 360" role="img">
+  <title>NoJob app logo</title>
+  <desc>NoJob gamified job tracker app icon with briefcase and gold star achievement badge</desc>
+
+  <!-- Icon: deep purple rounded square -->
+  <rect x="260" y="30" width="160" height="160" rx="36" fill="#5B21B6"/>
+
+  <!-- Inner top highlight -->
+  <rect x="260" y="30" width="160" height="58" rx="36" fill="#7C3AED" opacity="0.45"/>
+  <rect x="260" y="72" width="160" height="18" fill="#7C3AED" opacity="0.45"/>
+
+  <!-- Briefcase handle -->
+  <path d="M 316,87 L 316,71 Q 316,64 324,64 L 356,64 Q 364,64 364,71 L 364,87"
+        stroke="white" stroke-width="7.5" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Briefcase body -->
+  <rect x="288" y="87" width="104" height="72" rx="9" fill="white"/>
+
+  <!-- Horizontal divider -->
+  <line x1="288" y1="116" x2="392" y2="116" stroke="#5B21B6" stroke-width="1.5" opacity="0.18"/>
+
+  <!-- Clasp -->
+  <rect x="326" y="104" width="28" height="24" rx="5" fill="#5B21B6" opacity="0.18"/>
+
+  <!-- Star badge -->
+  <circle cx="415" cy="55" r="23" fill="#D97706"/>
+  <circle cx="415" cy="55" r="23" fill="none" stroke="white" stroke-width="3"/>
+  <circle cx="415" cy="55" r="20" fill="#F59E0B"/>
+  <text x="415" y="63"
+        text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="22"
+        font-weight="bold"
+        fill="white">&#9733;</text>
+
+  <!-- Wordmark -->
+  <text x="340" y="256"
+        text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="56"
+        font-weight="700">
+    <tspan fill="#6D28D9">No</tspan><tspan fill="#1F2937">Job</tspan>
+  </text>
+
+  <!-- Tagline -->
+  <text x="340" y="294"
+        text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="15"
+        font-weight="400"
+        fill="#9CA3AF"
+        letter-spacing="2">Gamified job tracker</text>
+
+  <!-- Decorative dots -->
+  <circle cx="304" cy="318" r="3" fill="#DDD6FE" opacity="0.6"/>
+  <circle cx="340" cy="318" r="3" fill="#7C3AED" opacity="0.8"/>
+  <circle cx="376" cy="318" r="3" fill="#DDD6FE" opacity="0.6"/>
+</svg>

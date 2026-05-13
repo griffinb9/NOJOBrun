@@ -6,6 +6,8 @@ import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
 import { db } from '@/lib/db';
 import { newId, now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
+import { coerceLoadedSalaryForForm } from '@/lib/salaryRanges';
+import SalaryRangeSelect from '@/components/jobs/SalaryRangeSelect';
 
 interface Props {
   open: boolean;
@@ -41,7 +43,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
           company: job.company,
           role: job.role,
           location: job.location ?? '',
-          salary: job.salary ?? '',
+          salary: coerceLoadedSalaryForForm(job.salary),
           status: job.status,
           dateApplied: job.dateApplied ?? '',
           interviewDates: job.interviewDates ?? [],
@@ -76,10 +78,11 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
     if (!form.company.trim() || !form.role.trim()) return;
     setSaving(true);
     const ts = now();
+    const salaryOut = (form.salary ?? '').trim() || undefined;
 
     try {
       if (job) {
-        await db.updateJob({ ...job, ...form, updatedAt: ts });
+        await db.updateJob({ ...job, ...form, salary: salaryOut, updatedAt: ts });
 
         if (form.status !== job.status) {
           if (form.status === 'recruiter_screen') await awardPoints('status_recruiter_screen', job.id, `Screen earned for ${form.company}`);
@@ -91,7 +94,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
         if (form.notes?.trim()) await awardPoints('notes_added', job.id);
       } else {
         const id = newId();
-        await db.addJob({ ...form, id, createdAt: ts, updatedAt: ts });
+        await db.addJob({ ...form, id, salary: salaryOut, createdAt: ts, updatedAt: ts });
         await awardPoints('application_added', id);
 
         if (form.status === 'recruiter_screen') await awardPoints('status_recruiter_screen', id, `Screen earned for ${form.company}`);
@@ -136,7 +139,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
               <input value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="Remote" />
             </Field>
             <Field label="Salary / Comp">
-              <input value={form.salary} onChange={(e) => set('salary', e.target.value)} placeholder="$120k–$140k" />
+              <SalaryRangeSelect value={form.salary ?? ''} onChange={(v) => set('salary', v)} />
             </Field>
           </div>
 

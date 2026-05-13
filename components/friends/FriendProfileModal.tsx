@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Send, PhoneCall, Mic, Trophy, MailCheck, Sparkles, BookOpen, Zap, Flame, X, Loader2,
+  Send, PhoneCall, Mic, Trophy, MailCheck, Sparkles, BookOpen, Zap, Flame, X, Loader2, Shield,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '@/lib/db';
@@ -10,7 +10,9 @@ import type { PublicFriendCard } from '@/lib/types';
 import { publicDisplayLabel } from '@/lib/public-profile';
 import { formatUsernameAt } from '@/lib/username';
 import {
+  achievementTierPillText,
   computeFriendAchievementsFromCounts,
+  formatTierNameDisplay,
   type ComputedAchievement,
   TIER_STYLE,
 } from '@/lib/achievements';
@@ -24,6 +26,7 @@ const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
   interviews: Mic,
   offers: Trophy,
   follow_ups: MailCheck,
+  resilience: Shield,
   prep_kits: Sparkles,
   star_stories: BookOpen,
   longest_streak: Flame,
@@ -36,34 +39,17 @@ const BADGE_COLORS: Record<string, { color: string; light: string }> = {
   interviews: { color: '#F43F5E', light: '#FB7185' },
   offers: { color: '#10B981', light: '#34D399' },
   follow_ups: { color: '#F59E0B', light: '#FCD34D' },
+  resilience: { color: '#DC2626', light: '#FB923C' },
   prep_kits: { color: '#7C3AED', light: '#A78BFA' },
   star_stories: { color: '#14B8A6', light: '#2DD4BF' },
   longest_streak: { color: '#EA580C', light: '#FB923C' },
 };
 
-function toRoman(num: number): string {
-  const map = [
-    { value: 10, symbol: 'X' },
-    { value: 9, symbol: 'IX' },
-    { value: 5, symbol: 'V' },
-    { value: 4, symbol: 'IV' },
-    { value: 1, symbol: 'I' },
-  ];
-  let result = '';
-  for (const { value, symbol } of map) {
-    while (num >= value) { result += symbol; num -= value; }
-  }
-  return result;
-}
-
-function formatTierName(name: string): string {
-  const match = name.match(/^(.*)\s(\d+)$/);
-  if (!match) return name;
-  return `${match[1]} ${toRoman(parseInt(match[2], 10))}`;
-}
-
 function getMicrocopy(id: string, progressPercent: number, isPlatinum: boolean): string {
-  if (isPlatinum) return 'Platinum tier — fully unlocked.';
+  if (isPlatinum) {
+    if (id === 'resilience') return 'You kept showing up. That is the whole game.';
+    return 'Platinum tier — fully unlocked.';
+  }
   const tables: Record<string, [string, string, string, string]> = {
     jobs_applied: ['Start sending. Volume builds luck.', 'Keep the streak alive.', 'Consistency is the cheat code.', 'Apps don\'t apply themselves.'],
     max_apps_one_day: ['One focused day can move the needle.', 'Stack reps when you\'re in the zone.', 'High output, high reward.', 'Blitz mode: unlocked.'],
@@ -74,6 +60,7 @@ function getMicrocopy(id: string, progressPercent: number, isPlatinum: boolean):
     prep_kits: ['Prep is an unfair advantage.', 'Walking in confident.', 'The work happens before the call.', 'Overprepared is the only prepared.'],
     star_stories: ['Stories win interviews.', 'Story bank growing.', 'Ready for any behavioral.', 'Every story is a weapon.'],
     longest_streak: ['Streaks start with one day.', 'Building the chain.', 'Consistency compounds.', 'Unstoppable momentum.'],
+    resilience: ['Showing up is half the win.', 'Every no sharpens your pitch.', 'Volume turns setbacks into data.', 'You keep going — that is the edge.'],
   };
   const pool = tables[id] ?? ['Keep going.', 'Building momentum.', 'Almost there.', 'So close.'];
   const idx = progressPercent >= 75 ? 3 : progressPercent >= 50 ? 2 : progressPercent >= 20 ? 1 : 0;
@@ -224,10 +211,10 @@ function FriendAchievementTile({ achievement: a }: { achievement: ComputedAchiev
   const Icon = ACHIEVEMENT_ICONS[a.id] ?? Trophy;
   const palette = BADGE_COLORS[a.id] ?? { color: '#6366F1', light: '#818CF8' };
   const microcopy = getMicrocopy(a.id, a.progressPercent, isPlatinum);
-  const started = a.count > 0;
+  const started = a.count > 0 || Boolean(a.preFirstTier);
   const nextLabel = isPlatinum
     ? 'Maximum tier reached'
-    : `${a.toNextTier} more ${a.toNextTier === 1 ? a.unit : `${a.unit}s`} to ${formatTierName(a.nextTier!.name)}`;
+    : `${a.toNextTier} more ${a.toNextTier === 1 ? a.unit : `${a.unit}s`} to ${formatTierNameDisplay(a.nextTier!.name)}`;
   const countLabel = a.id === 'max_apps_one_day' ? 'Personal best (one day)' : null;
 
   return (
@@ -249,7 +236,7 @@ function FriendAchievementTile({ achievement: a }: { achievement: ComputedAchiev
       <span
         className={`absolute top-2.5 right-2.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${style.badge} whitespace-nowrap`}
       >
-        {formatTierName(a.currentTier.name)}
+        {achievementTierPillText(a)}
       </span>
 
       <AchievementBadge
@@ -265,6 +252,9 @@ function FriendAchievementTile({ achievement: a }: { achievement: ComputedAchiev
 
       {a.id === 'max_apps_one_day' && (
         <p className="text-[10px] text-amber-700/90 font-medium leading-snug mt-1 px-1">{a.description}</p>
+      )}
+      {a.id === 'resilience' && (
+        <p className="text-[10px] text-orange-800/85 font-medium leading-snug mt-1 px-1">{a.description}</p>
       )}
 
       <p className="text-[11px] text-stone-400 leading-snug mt-1 px-1">{microcopy}</p>

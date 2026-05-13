@@ -426,6 +426,7 @@ declare
   followups_n bigint;
   prep_n bigint;
   stories_n bigint;
+  rejects_n bigint;
   longest_n integer;
   current_n integer;
 begin
@@ -480,6 +481,10 @@ begin
   select count(*)::bigint into stories_n
   from public.stories s where s.user_id = p_friend_user_id;
 
+  select count(*)::bigint into rejects_n
+  from public.applications a
+  where a.user_id = p_friend_user_id and a.status = 'rejected';
+
   select coalesce(max(pr.longest_streak), 0), coalesce(max(pr.current_streak), 0)
   into longest_n, current_n
   from public.user_progress pr
@@ -497,6 +502,7 @@ begin
       'follow_ups', followups_n,
       'prep_kits', prep_n,
       'star_stories', stories_n,
+      'resilience', rejects_n,
       'longest_streak', longest_n
     )
   );

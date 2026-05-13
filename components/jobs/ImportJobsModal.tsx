@@ -16,6 +16,7 @@ import {
   parseImportDate,
   sortAppliedColumnAfterImport,
 } from '@/lib/importJobs';
+import { salaryFromImportCell } from '@/lib/salaryRanges';
 
 interface Props {
   open: boolean;
@@ -178,27 +179,34 @@ function MappingStep({
         {ALL_FIELDS.map((field) => {
           const required = REQUIRED_FIELDS.includes(field);
           return (
-            <div key={field} className="flex items-center justify-between py-2.5 gap-4">
-              <label className="text-sm font-medium text-stone-700 w-36 shrink-0">
-                {FIELD_LABELS[field]}
-                {required && <span className="text-red-500 ml-0.5">*</span>}
-              </label>
-              <select
-                value={mapping[field] ?? ''}
-                onChange={(e) => setMapping({ ...mapping, [field]: e.target.value || null })}
-                className={`flex-1 text-sm border rounded-lg px-3 py-1.5 bg-white outline-none transition-colors ${
-                  required && !mapping[field]
-                    ? 'border-red-200 focus:border-red-400'
-                    : 'border-stone-200 focus:border-violet-400'
-                }`}
-              >
-                <option value="">— skip —</option>
-                {headers.map((h) => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
-              {mapping[field] && (
-                <div className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+            <div key={field} className="py-2.5 space-y-1">
+              <div className="flex items-center justify-between gap-4">
+                <label className="text-sm font-medium text-stone-700 w-36 shrink-0">
+                  {FIELD_LABELS[field]}
+                  {required && <span className="text-red-500 ml-0.5">*</span>}
+                </label>
+                <select
+                  value={mapping[field] ?? ''}
+                  onChange={(e) => setMapping({ ...mapping, [field]: e.target.value || null })}
+                  className={`flex-1 text-sm border rounded-lg px-3 py-1.5 bg-white outline-none transition-colors ${
+                    required && !mapping[field]
+                      ? 'border-red-200 focus:border-red-400'
+                      : 'border-stone-200 focus:border-violet-400'
+                  }`}
+                >
+                  <option value="">— skip —</option>
+                  {headers.map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+                {mapping[field] && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                )}
+              </div>
+              {field === 'salary' && (
+                <p className="text-[11px] text-stone-400 leading-snug pl-1">
+                  Cell text is imported as saved on the job. Edit the job to pick a standard range; custom text is kept until you change it.
+                </p>
               )}
             </div>
           );
@@ -509,7 +517,7 @@ export default function ImportJobsModal({ open, onClose, onImported }: Props) {
         company,
         role,
         location:       mapping.location        ? (row[mapping.location]        ?? '').trim() || undefined : undefined,
-        salary:         mapping.salary           ? (row[mapping.salary]          ?? '').trim() || undefined : undefined,
+        salary:         mapping.salary ? salaryFromImportCell(row[mapping.salary] ?? '') : undefined,
         status,
         dateApplied: parsedDateApplied ?? ts.split('T')[0],
         interviewDates: [],

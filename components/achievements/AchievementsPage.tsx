@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Send, PhoneCall, Mic, Trophy, MailCheck, Sparkles, BookOpen, Zap,
+  Send, PhoneCall, Mic, Trophy, MailCheck, Sparkles, BookOpen, Zap, Shield,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '@/lib/db';
 import {
+  achievementTierPillText,
   computeAllAchievements,
   ComputedAchievement,
+  formatTierNameDisplay,
   TIER_STYLE,
 } from '@/lib/achievements';
 import AchievementBadge from '@/components/ui/AchievementBadge';
@@ -20,6 +22,7 @@ const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
   interviews:        Mic,
   offers:            Trophy,
   follow_ups:        MailCheck,
+  resilience:       Shield,
   prep_kits:         Sparkles,
   star_stories:      BookOpen,
 };
@@ -32,33 +35,16 @@ const BADGE_COLORS: Record<string, { color: string; light: string }> = {
   interviews:        { color: '#F43F5E', light: '#FB7185' }, // red-pink
   offers:            { color: '#10B981', light: '#34D399' }, // emerald
   follow_ups:        { color: '#F59E0B', light: '#FCD34D' }, // amber
+  resilience:        { color: '#DC2626', light: '#FB923C' }, // ember / amber glow
   prep_kits:         { color: '#7C3AED', light: '#A78BFA' }, // violet
   star_stories:      { color: '#14B8A6', light: '#2DD4BF' }, // teal
 };
 
-function toRoman(num: number): string {
-  const map = [
-    { value: 10, symbol: 'X' },
-    { value: 9,  symbol: 'IX' },
-    { value: 5,  symbol: 'V' },
-    { value: 4,  symbol: 'IV' },
-    { value: 1,  symbol: 'I' },
-  ];
-  let result = '';
-  for (const { value, symbol } of map) {
-    while (num >= value) { result += symbol; num -= value; }
-  }
-  return result;
-}
-
-function formatTierName(name: string): string {
-  const match = name.match(/^(.*)\s(\d+)$/);
-  if (!match) return name;
-  return `${match[1]} ${toRoman(parseInt(match[2], 10))}`;
-}
-
 function getMicrocopy(id: string, progressPercent: number, isPlatinum: boolean): string {
-  if (isPlatinum) return 'Platinum tier — fully unlocked.';
+  if (isPlatinum) {
+    if (id === 'resilience') return 'You kept showing up. That is the whole game.';
+    return 'Platinum tier — fully unlocked.';
+  }
 
   const tables: Record<string, [string, string, string, string]> = {
     jobs_applied:      ['Start sending. Volume builds luck.', 'Keep the streak alive.', 'Consistency is the cheat code.', 'Apps don\'t apply themselves.'],
@@ -69,6 +55,7 @@ function getMicrocopy(id: string, progressPercent: number, isPlatinum: boolean):
     follow_ups:        ['The follow-up is the differentiator.', 'Persistent, not desperate.', 'Following up closes the loop.', 'Never ghosting back.'],
     prep_kits:         ['Prep is an unfair advantage.', 'Walking in confident.', 'The work happens before the call.', 'Overprepared is the only prepared.'],
     star_stories:      ['Stories win interviews.', 'Your story bank is growing.', 'Ready for any behavioral.', 'Every story is a weapon.'],
+    resilience:        ['Showing up is half the win.', 'Every no sharpens your pitch.', 'Volume turns setbacks into data.', 'You keep going — that is the edge.'],
   };
 
   const pool = tables[id] ?? ['Keep going.', 'Building momentum.', 'Almost there.', 'So close.'];
@@ -148,7 +135,7 @@ function AchievementCard({ achievement: a, compact = false }: { achievement: Com
 
   const nextLabel = isPlatinum
     ? 'Maximum tier reached'
-    : `${a.toNextTier} more ${a.toNextTier === 1 ? a.unit : `${a.unit}s`} to ${formatTierName(a.nextTier!.name)}`;
+    : `${a.toNextTier} more ${a.toNextTier === 1 ? a.unit : `${a.unit}s`} to ${formatTierNameDisplay(a.nextTier!.name)}`;
 
   const countLabel = a.id === 'max_apps_one_day' ? 'Personal best (one day)' : null;
 
@@ -162,6 +149,7 @@ function AchievementCard({ achievement: a, compact = false }: { achievement: Com
         transition-all duration-250
         border-t-[3px] ${style.borderTop}
         ${a.id === 'max_apps_one_day' ? 'ring-1 ring-amber-200/70 shadow-[0_2px_12px_rgba(245,158,11,0.08)]' : ''}
+        ${a.id === 'resilience' ? 'ring-1 ring-orange-200/80 shadow-[0_2px_16px_rgba(234,88,12,0.12)]' : ''}
         ${compact ? 'px-4 pt-6 pb-4 gap-0' : 'px-5 pt-8 pb-6 gap-0'}
       `}
     >
@@ -169,7 +157,7 @@ function AchievementCard({ achievement: a, compact = false }: { achievement: Com
       <span
         className={`absolute ${compact ? 'top-2.5 right-2.5 text-[10px] px-2 py-0.5' : 'top-3.5 right-3.5 text-xs px-2.5 py-1'} font-semibold rounded-full border ${style.badge} whitespace-nowrap`}
       >
-        {formatTierName(a.currentTier.name)}
+        {achievementTierPillText(a)}
       </span>
 
       {/* Badge — focal centrepiece */}
@@ -187,6 +175,9 @@ function AchievementCard({ achievement: a, compact = false }: { achievement: Com
 
       {a.id === 'max_apps_one_day' && (
         <p className={`text-amber-700/90 font-medium leading-snug mt-1 px-2 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>{a.description}</p>
+      )}
+      {a.id === 'resilience' && (
+        <p className={`text-orange-800/85 font-medium leading-snug mt-1 px-2 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>{a.description}</p>
       )}
 
       {/* Microcopy */}
