@@ -17,6 +17,7 @@ import {
   PublicFriendCard,
   PublicFriendSearchResult,
   IncomingFriendPreview,
+  WeeklyAppsLeaderboardEntry,
 } from './types';
 import { mergeHasResponseForSave } from './job-response';
 import { normalizeTrackerColumnOrder } from './trackerColumns';
@@ -718,5 +719,38 @@ export const db = {
     const cs = raw.current_streak;
     const current_streak = typeof cs === 'number' && !Number.isNaN(cs) ? cs : Number(cs) || 0;
     return { ok: true, counts, current_streak };
+  },
+
+  /**
+   * Weekly application counts for the current user + accepted friends only.
+   * RPC returns aggregates only (no company/role/etc.).
+   */
+  async getWeeklyApplicationsLeaderboard(bounds: {
+    weekStart: string;
+    weekEnd: string;
+    timeZone: string;
+  }): Promise<WeeklyAppsLeaderboardEntry[]> {
+    const { data, error } = await supabase.rpc('get_weekly_applications_leaderboard', {
+      p_week_start: bounds.weekStart,
+      p_week_end: bounds.weekEnd,
+      p_tz: bounds.timeZone,
+    });
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as {
+      user_id: string;
+      username: string | null;
+      display_name: string | null;
+      full_name: string;
+      current_rank: string;
+      apps_this_week: number | string;
+    }[];
+    return rows.map((r) => ({
+      userId: r.user_id,
+      username: r.username,
+      displayName: r.display_name,
+      fullName: r.full_name,
+      currentRank: r.current_rank,
+      appsThisWeek: typeof r.apps_this_week === 'number' ? r.apps_this_week : Number(r.apps_this_week) || 0,
+    }));
   },
 };

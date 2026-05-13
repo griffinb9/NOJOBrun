@@ -17,11 +17,14 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import type { Friendship, IncomingFriendPreview, PublicFriendCard, PublicFriendSearchResult } from '@/lib/types';
+import type { Friendship, IncomingFriendPreview, PublicFriendCard, PublicFriendSearchResult, WeeklyAppsLeaderboardEntry } from '@/lib/types';
 import { publicDisplayLabel } from '@/lib/public-profile';
 import { formatUsernameAt, normalizeUsername, validateUsername } from '@/lib/username';
+import { getBrowserLocalWeekDateBounds, formatWeekRangeLabel } from '@/lib/week-range';
 import { useMobileNav } from '@/lib/mobile-nav';
 import FriendProfileModal from '@/components/friends/FriendProfileModal';
+import WeeklyLeaderboard from '@/components/friends/WeeklyLeaderboard';
+import type { RankedWeeklyEntry } from '@/components/friends/WeeklyLeaderboard';
 
 function rankBadgeClass(rank: string): string {
   const r = rank.toLowerCase();
@@ -46,6 +49,8 @@ export default function FriendsPage() {
   const [formError, setFormError] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailCard, setDetailCard] = useState<PublicFriendCard | null>(null);
+  const [leaderboardRows, setLeaderboardRows] = useState<WeeklyAppsLeaderboardEntry[]>([]);
+  const [leaderboardWeekLabel, setLeaderboardWeekLabel] = useState('');
 
   const hasUsername = !!(profile?.username?.trim());
 
@@ -53,6 +58,21 @@ export default function FriendsPage() {
     const [f, c] = await Promise.all([db.listFriendships(), db.getAcceptedFriendPublicCards()]);
     setFriendships(f);
     setCards(c);
+
+    const hasAccepted = f.some((x) => x.status === 'accepted');
+    let leaderboard: WeeklyAppsLeaderboardEntry[] = [];
+    let weekLabel = '';
+    if (hasAccepted) {
+      const bounds = getBrowserLocalWeekDateBounds();
+      weekLabel = formatWeekRangeLabel(bounds.weekStart, bounds.weekEnd);
+      try {
+        leaderboard = await db.getWeeklyApplicationsLeaderboard(bounds);
+      } catch {
+        leaderboard = [];
+      }
+    }
+    setLeaderboardWeekLabel(weekLabel);
+    setLeaderboardRows(leaderboard);
     try {
       const inc = await db.listIncomingFriendRequestPreviews();
       setIncomingPreviews(inc);
@@ -90,6 +110,35 @@ export default function FriendsPage() {
         return { friendship: f, card: cardByUserId.get(otherId) };
       });
   }, [friendships, user, cardByUserId]);
+
+  const hasAcceptedFriends = useMemo(
+    () => friendships.some((x) => x.status === 'accepted'),
+    [friendships],
+  );
+
+  const rankedLeaderboard = useMemo((): RankedWeeklyEntry[] => {
+    const sorted = [...leaderboardRows].sort((a, b) => {
+      if (b.appsThisWeek !== a.appsThisWeek) return b.appsThisWeek - a.appsThisWeek;
+      return a.userId.localeCompare(b.userId);
+    });
+    const out: RankedWeeklyEntry[] = [];
+    let displayRank = 0;
+    let prevApps: number | null = null;
+    for (let i = 0; i < sorted.length; i++) {
+      const row = sorted[i];
+      if (prevApps === null || row.appsThisWeek !== prevApps) {
+        displayRank = i + 1;
+        prevApps = row.appsThisWeek;
+      }
+      out.push({ ...row, displayRank });
+    }
+    return out;
+  }, [leaderboardRows]);
+
+  const noAppsThisWeek = useMemo(
+    () => rankedLeaderboard.length > 0 && rankedLeaderboard.every((r) => r.appsThisWeek === 0),
+    [rankedLeaderboard],
+  );
 
   function relationToTarget(targetId: string): 'accepted' | 'pending_out' | 'pending_in' | null {
     for (const f of friendships) {
@@ -231,6 +280,15 @@ export default function FriendsPage() {
         )}
 
         {hasUsername && (
+          <>
+            <WeeklyLeaderboard
+              loading={loading}
+              weekLabel={leaderboardWeekLabel}
+              ranked={rankedLeaderboard}
+              currentUserId={user.id}
+              noFriends={!loading && !hasAcceptedFriends}
+              noAppsThisWeek={noAppsThisWeek}
+            />
           <section className="mb-8 rounded-2xl border border-white/80 bg-white/70 backdrop-blur-md shadow-sm shadow-violet-500/5 p-4 md:p-5">
             <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-stone-400 mb-2">
               <Search size={14} /> Find by username
@@ -306,6 +364,7 @@ export default function FriendsPage() {
               </ul>
             )}
           </section>
+          </>
         )}
 
         {incomingPreviews.length > 0 && (

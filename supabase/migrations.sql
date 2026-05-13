@@ -491,3 +491,67 @@ $$;
 
 revoke all on function public.get_friend_achievement_summary(uuid) from public;
 grant execute on function public.get_friend_achievement_summary(uuid) to authenticated;
+
+-- Weekly application counts for you + accepted friends only (aggregates; no job rows exposed).
+create or replace function public.get_weekly_applications_leaderboard(
+  p_week_start date,
+  p_week_end date,
+  p_tz text default 'UTC'
+)
+returns table (
+  user_id uuid,
+  username text,
+  display_name text,
+  full_name text,
+  current_rank text,
+  apps_this_week bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+  tz text := coalesce(nullif(trim(p_tz), ''), 'UTC');
+begin
+  if me is null then
+    raise exception 'not authenticated';
+  end if;
+
+  return query
+  with cohort as (
+    select me as uid
+    union
+    select case when f.requester_id = me then f.receiver_id else f.requester_id end
+    from public.friendships f
+    where f.status = 'accepted'
+      and (f.requester_id = me or f.receiver_id = me)
+  ),
+  counts as (
+    select
+      a.user_id,
+      count(*)::bigint as n
+    from public.applications a
+    inner join cohort c on c.uid = a.user_id
+    where coalesce(a.date_applied, (a.created_at at time zone tz)::date) >= p_week_start
+      and coalesce(a.date_applied, (a.created_at at time zone tz)::date) <= p_week_end
+    group by a.user_id
+  )
+  select
+    p.id,
+    p.username,
+    p.display_name,
+    p.full_name,
+    pr.current_rank,
+    coalesce(ct.n, 0)::bigint
+  from cohort co
+  inner join public.user_profiles p on p.id = co.uid
+  inner join public.user_progress pr on pr.user_id = co.uid
+  left join counts ct on ct.user_id = co.uid
+  order by coalesce(ct.n, 0) desc, p.id asc;
+end;
+$$;
+
+revoke all on function public.get_weekly_applications_leaderboard(date, date, text) from public;
+grant execute on function public.get_weekly_applications_leaderboard(date, date, text) to authenticated;

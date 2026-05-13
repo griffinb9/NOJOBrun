@@ -217,6 +217,16 @@ export interface Friendship {
   updatedAt: string;
 }
 
+/** One row from weekly apps leaderboard RPC (no job / company fields). */
+export interface WeeklyAppsLeaderboardEntry {
+  userId: string;
+  username: string | null;
+  displayName: string | null;
+  fullName: string;
+  currentRank: string;
+  appsThisWeek: number;
+}
+
 export interface RankTier {
   name: string;
   description: string;
