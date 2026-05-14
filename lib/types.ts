@@ -46,6 +46,15 @@ export interface Job {
   updatedAt: string;
 }
 
+/** Pending achievement level-up toast row (`achievement_notifications`, unseen). */
+export interface AchievementNotification {
+  id: string;
+  achievementKey: string;
+  oldTier: string;
+  newTier: string;
+  createdAt: string;
+}
+
 export interface Story {
   id: string;
   title: string;

@@ -320,6 +320,24 @@ export function achievementTierPillText(a: ComputedAchievement): string {
   return formatTierNameDisplay(a.currentTier.name);
 }
 
+/** Stored in DB for pre–first-tier resilience-style ladders (rank -1). */
+export const PREFIRST_TIER_TOKEN = '__prefirst__';
+
+export function achievementTierToken(a: ComputedAchievement): string {
+  if (a.preFirstTier) return PREFIRST_TIER_TOKEN;
+  return a.currentTier.name;
+}
+
+export function achievementTierRankForToken(def: AchievementDef, tierToken: string): number {
+  if (tierToken === PREFIRST_TIER_TOKEN) return -1;
+  const i = def.tiers.findIndex((t) => t.name === tierToken);
+  return i >= 0 ? i : -1;
+}
+
+export function getAchievementDefById(id: string): AchievementDef | undefined {
+  return ACHIEVEMENT_DEFS.find((d) => d.id === id);
+}
+
 export function computeAchievement(def: AchievementDef, count: number): ComputedAchievement {
   const tiers = def.tiers;
   const safeCount = Math.max(0, Math.floor(Number(count)));

@@ -263,3 +263,20 @@ a, button, [role='button'] {
 .rank-card-rim-light {
   animation: rank-card-rim-shift 8s ease-in-out infinite;
 }
+
+/* Dashboard — ultra-soft mesh drift (readability-safe) */
+@keyframes dashboard-mesh-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.92;
+    transform: scale(1.02);
+  }
+}
+
+.dashboard-mesh-breathe {
+  animation: dashboard-mesh-breathe 18s ease-in-out infinite;
+}

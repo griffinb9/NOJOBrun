@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -16,7 +16,8 @@ import {
 import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth';
 import { Job, STATUS_COLORS, STATUS_BORDER, STATUS_LABELS, UserProgress } from '@/lib/types';
-import JobFormModal from './jobs/JobFormModal';
+import { useOpenAddJob } from '@/components/jobs/JobAddModalProvider';
+import { subscribeJobsMutated } from '@/lib/jobsMutateEvents';
 import RankCard from './dashboard/RankCard';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { computeJobStreak } from '@/lib/job-streak';
@@ -24,6 +25,7 @@ import { formatDate, daysSince, getDashboardTitle } from '@/lib/utils';
 import { getRank } from '@/lib/points';
 import { autoGhostStaleApplications } from '@/lib/autoGhost';
 import type { LucideIcon } from 'lucide-react';
+import { useAchievementLevelUpRequest } from '@/components/achievements/AchievementLevelUpProvider';
 
 const GREETINGS = [
   "Let's get after it",
@@ -107,34 +109,32 @@ function StatValue({ value }: { value: string | number }) {
 
 export default function Dashboard() {
   const { profile } = useAuth();
+  const openAddJob = useOpenAddJob();
+  const requestAchievementLevelCheck = useAchievementLevelUpRequest();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [progress, setProgress] = useState<UserProgress | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
   const [rankKey, setRankKey] = useState(0);
   const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
 
-  useEffect(() => {
-    async function loadData() {
-      const [rawJobs, p] = await Promise.all([db.getJobs(), db.getUserProgress()]);
-      const j = await autoGhostStaleApplications(rawJobs);
-      const progress = await db.syncJobStreakFromJobs(j, p);
-      setJobs(j);
-      setProgress(progress);
-    }
-    loadData();
-  }, []);
-
-  async function load() {
-    const j = await db.getJobs();
+  const refreshJobs = useCallback(async () => {
+    const [rawJobs, p] = await Promise.all([db.getJobs(), db.getUserProgress()]);
+    const j = await autoGhostStaleApplications(rawJobs);
+    const nextProgress = await db.syncJobStreakFromJobs(j, p);
     setJobs(j);
-    setProgress(await db.syncJobStreakFromJobs(j));
-  }
+    setProgress(nextProgress);
+    void requestAchievementLevelCheck();
+  }, [requestAchievementLevelCheck]);
 
-  function handleJobAdded() {
-    setAddOpen(false);
-    load();
-    setRankKey((k) => k + 1);
-  }
+  useEffect(() => {
+    void refreshJobs();
+  }, [refreshJobs]);
+
+  useEffect(() => {
+    return subscribeJobsMutated(() => {
+      void refreshJobs();
+      setRankKey((k) => k + 1);
+    });
+  }, [refreshJobs]);
 
   if (!profile || !progress) return null;
 
@@ -226,47 +226,44 @@ export default function Dashboard() {
   const particleDelays = ['0s', '2.2s', '4.1s', '1.3s', '5.5s', '3.4s'];
 
   return (
-    <div className="relative min-h-full w-full overflow-hidden">
-      {/* Atmosphere */}
+    <div className="relative min-h-full w-full overflow-x-clip">
+      {/* Atmosphere — soft mesh + depth */}
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#e8ebf6] via-slate-100 to-[#d4ddf2]"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#eceef8] via-[#e8ecf6] to-[#dfe6f3]"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_125%_75%_at_50%_-5%,rgba(99,102,241,0.11),transparent_58%),radial-gradient(ellipse_85%_55%_at_100%_45%,rgba(56,189,248,0.07),transparent_52%),radial-gradient(ellipse_60%_45%_at_0%_95%,rgba(245,185,66,0.06),transparent_55%),radial-gradient(ellipse_50%_35%_at_85%_100%,rgba(139,92,246,0.05),transparent_50%)]"
+        className="dashboard-mesh-breathe pointer-events-none absolute inset-0 opacity-[0.97] bg-[radial-gradient(ellipse_110%_80%_at_50%_-8%,rgba(99,102,241,0.13),transparent_58%),radial-gradient(ellipse_70%_55%_at_100%_38%,rgba(14,165,233,0.09),transparent_52%),radial-gradient(ellipse_55%_50%_at_0%_92%,rgba(245,158,11,0.055),transparent_56%),radial-gradient(ellipse_45%_35%_at_82%_100%,rgba(139,92,246,0.06),transparent_50%)]"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/25 to-transparent opacity-60"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-50"
         aria-hidden
       />
       <div className="pointer-events-none absolute inset-0 dashboard-noise-overlay" aria-hidden />
 
-      {/* Floating particles */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         {[
-          ['10%', '22%', 'h-1.5 w-1.5'],
-          ['78%', '18%', 'h-2 w-2'],
-          ['88%', '62%', 'h-1 w-1'],
-          ['18%', '72%', 'h-1.5 w-1.5'],
-          ['52%', '38%', 'h-2 w-2'],
-          ['66%', '85%', 'h-1 w-1'],
+          ['12%', '24%', 'h-1 w-1'],
+          ['82%', '16%', 'h-1.5 w-1.5'],
+          ['70%', '58%', 'h-1 w-1'],
+          ['24%', '68%', 'h-1.5 w-1.5'],
         ].map(([left, top, size], i) => (
           <span
             key={i}
-            className={`dashboard-particle absolute rounded-full bg-gradient-to-br from-indigo-400/50 to-violet-300/35 blur-[0.5px] ${size}`}
+            className={`dashboard-particle absolute rounded-full bg-gradient-to-br from-indigo-400/40 to-violet-300/28 blur-[0.5px] opacity-90 ${size}`}
             style={{ left, top, animationDelay: particleDelays[i] ?? '0s' }}
           />
         ))}
       </div>
 
-      <div className="relative z-[1] mx-auto w-full max-w-5xl p-6 md:p-10">
+      <div className="relative z-[1] mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 md:px-10 md:py-12">
 
         {!profile.username?.trim() && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 rounded-2xl border border-indigo-200/90 bg-white/80 px-4 py-3 text-sm text-slate-800 shadow-[0_8px_32px_-12px_rgba(99,102,241,0.18)] backdrop-blur-md"
+            className="mb-8 rounded-2xl border border-indigo-200/70 bg-white/75 px-4 py-3.5 text-sm text-slate-800 shadow-[0_12px_40px_-16px_rgba(99,102,241,0.15)] backdrop-blur-md ring-1 ring-white/80 sm:px-5"
           >
             <p className="font-semibold text-indigo-900">Choose a username to unlock Friends</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-600">
@@ -281,119 +278,126 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        {/* Hero — command center */}
-        <div className="relative mb-8 flex flex-wrap items-start justify-between gap-x-4 gap-y-4 md:mb-10">
+        {/* Hero — frosted command deck */}
+        <section className="relative mb-10 md:mb-12">
           <div
-            className="dashboard-header-ambient pointer-events-none absolute -left-8 -top-6 h-44 w-[min(100%,32rem)] rounded-[2rem] bg-gradient-to-r from-indigo-500/18 via-violet-500/14 to-[#F5B942]/12 blur-3xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute -left-4 top-0 h-32 w-40 rounded-full bg-sky-400/12 blur-3xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute left-[40%] top-8 h-24 w-56 rounded-full bg-violet-500/10 blur-2xl"
-            aria-hidden
-          />
-
-          <motion.div
-            className="relative max-w-[min(100%,28rem)] md:max-w-xl"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="relative overflow-hidden rounded-[1.75rem] border border-white/75 bg-white/[0.48] p-6 shadow-[0_24px_56px_-28px_rgba(30,27,75,0.2),0_0_0_1px_rgba(255,255,255,0.65)_inset,0_1px_0_rgba(255,255,255,0.9)_inset] ring-1 ring-slate-900/[0.05] backdrop-blur-2xl md:p-8"
           >
-            <div className="relative overflow-hidden rounded-2xl border border-white/50 bg-white/40 px-4 py-3 shadow-[0_12px_40px_-16px_rgba(49,46,129,0.14)] ring-1 ring-indigo-100/60 backdrop-blur-md sm:px-5 sm:py-3.5">
-              <span
-                className="dashboard-hero-shimmer pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/50 to-transparent"
-                aria-hidden
-              />
-              <p className="relative text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 sm:text-[11px]">
-                {greeting}
-              </p>
-            </div>
-
-            <div className="relative mt-4 flex min-w-0 cursor-default items-start gap-3 sm:items-center sm:gap-3.5">
-              <motion.div
-                whileHover={{ scale: 1.04 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 18 }}
-                className="shrink-0"
-              >
-                <UserAvatar
-                  src={profile.avatarUrl}
-                  fullName={profile.fullName}
-                  displayName={profile.displayName}
-                  username={profile.username}
-                  size="lg"
-                  className="ring-2 ring-indigo-200/80 shadow-[0_8px_24px_-6px_rgba(99,102,241,0.35)]"
-                />
-              </motion.div>
-              <div className="min-w-0 flex-1">
-                <div className="relative">
-                  <span
-                    className="pointer-events-none absolute -inset-x-1 -inset-y-1 bg-gradient-to-r from-indigo-500/8 via-violet-500/12 to-sky-500/8 blur-xl"
-                    aria-hidden
-                  />
-                  <h1 className="relative break-words text-2xl font-black leading-[1.08] tracking-[-0.03em] sm:text-4xl md:text-[2.35rem] md:leading-[1.06]">
-                    <span className="bg-gradient-to-r from-slate-900 via-indigo-800 to-violet-900 bg-clip-text text-transparent">
-                      {title}
-                    </span>
-                  </h1>
-                </div>
-              </div>
-            </div>
-
-            <motion.div
-              className="mt-3 flex flex-wrap items-center gap-2"
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-            >
-              <motion.span
-                variants={itemVariants}
-                className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200/90 bg-white/90 px-3 py-1 text-xs font-bold text-slate-800 shadow-sm shadow-indigo-500/10 ring-1 ring-white/80 backdrop-blur-sm"
-              >
-                <Sparkles size={12} className="text-amber-500" strokeWidth={2.5} />
-                {currentRank.name}
-              </motion.span>
-              <motion.span variants={itemVariants} className="text-slate-300 text-xs">
-                ·
-              </motion.span>
-              <motion.span
-                variants={itemVariants}
-                className="bg-gradient-to-r from-slate-900 via-indigo-800 to-violet-800 bg-clip-text text-xs font-black tabular-nums text-transparent drop-shadow-[0_0_14px_rgba(99,102,241,0.2)]"
-              >
-                {progress.totalPoints} pts
-              </motion.span>
-            </motion.div>
-
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-600">{subtitle}</p>
-          </motion.div>
-
-          <motion.button
-            type="button"
-            onClick={() => setAddOpen(true)}
-            className="relative flex shrink-0 items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 via-indigo-600 to-violet-700 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_36px_-8px_rgba(99,102,241,0.45)] outline-none ring-1 ring-white/15"
-            whileHover={{
-              scale: 1.03,
-              boxShadow: '0 16px 44px -8px rgba(99,102,241,0.4), 0 0 40px rgba(245,185,66,0.15)',
-            }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-          >
-            <span
-              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-amber-300/0 via-amber-200/15 to-white/0 opacity-0 transition-opacity duration-500 hover:opacity-100"
+            <div
+              className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-gradient-to-br from-indigo-400/20 via-violet-400/12 to-transparent blur-3xl"
               aria-hidden
             />
-            <Plus size={15} strokeWidth={2.5} />
-            Add Job
-          </motion.button>
+            <div
+              className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-sky-400/14 blur-3xl"
+              aria-hidden
+            />
+
+            <div className="relative grid gap-8 md:grid-cols-[1fr_auto] md:items-center md:gap-10">
+              <motion.div
+                className="min-w-0"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div className="relative inline-flex overflow-hidden rounded-xl border border-white/60 bg-gradient-to-r from-white/75 to-indigo-50/35 px-3.5 py-2 shadow-sm shadow-indigo-500/8 ring-1 ring-indigo-100/40 backdrop-blur-md sm:px-4">
+                  <span
+                    className="dashboard-hero-shimmer pointer-events-none absolute inset-y-0 left-0 w-[55%] bg-gradient-to-r from-transparent via-white/55 to-transparent"
+                    aria-hidden
+                  />
+                  <p className="relative text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 sm:text-[11px]">
+                    {greeting}
+                  </p>
+                </div>
+
+                <div className="relative mt-5 flex min-w-0 items-start gap-3.5 sm:items-center sm:gap-4">
+                  <motion.div
+                    whileHover={{ scale: 1.03 }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 20 }}
+                    className="shrink-0"
+                  >
+                    <UserAvatar
+                      src={profile.avatarUrl}
+                      fullName={profile.fullName}
+                      displayName={profile.displayName}
+                      username={profile.username}
+                      size="lg"
+                      className="ring-[3px] ring-white shadow-[0_12px_36px_-8px_rgba(99,102,241,0.35),0_0_0_1px_rgba(226,232,240,0.9)]"
+                    />
+                  </motion.div>
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <h1 className="break-words text-2xl font-black leading-[1.06] tracking-[-0.035em] sm:text-4xl md:text-[2.45rem]">
+                      <span className="bg-gradient-to-r from-slate-900 via-indigo-800 to-violet-800 bg-clip-text text-transparent">
+                        {title}
+                      </span>
+                    </h1>
+                  </div>
+                </div>
+
+                <motion.div
+                  className="mt-4 flex flex-wrap items-center gap-2"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                >
+                  <motion.span
+                    variants={itemVariants}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200/80 bg-white/90 px-3 py-1 text-xs font-bold text-slate-800 shadow-[0_2px_12px_-4px_rgba(99,102,241,0.12)] ring-1 ring-white/90 backdrop-blur-sm"
+                  >
+                    <Sparkles size={12} className="text-amber-500" strokeWidth={2.5} />
+                    {currentRank.name}
+                  </motion.span>
+                  <motion.span variants={itemVariants} className="text-slate-300/90 text-xs font-light">
+                    ·
+                  </motion.span>
+                  <motion.span
+                    variants={itemVariants}
+                    className="bg-gradient-to-r from-slate-900 via-indigo-700 to-violet-800 bg-clip-text text-xs font-black tabular-nums text-transparent drop-shadow-[0_0_12px_rgba(99,102,241,0.18)]"
+                  >
+                    {progress.totalPoints} pts
+                  </motion.span>
+                </motion.div>
+
+                <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-600 md:text-[0.9375rem]">{subtitle}</p>
+              </motion.div>
+
+              <div className="flex flex-col gap-3 border-t border-slate-200/50 pt-6 md:border-l md:border-t-0 md:pl-10 md:pt-0">
+                <motion.button
+                  type="button"
+                  onClick={() => openAddJob()}
+                  className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-600 to-violet-700 px-5 py-3.5 text-sm font-bold text-white shadow-[0_14px_40px_-10px_rgba(79,70,229,0.45)] outline-none ring-1 ring-white/20 md:min-w-[12.5rem]"
+                  whileHover={{
+                    scale: 1.02,
+                    boxShadow: '0 18px 48px -10px rgba(67,56,202,0.42), 0 0 36px rgba(245,185,66,0.12)',
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                >
+                  <span
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-r from-amber-300/0 via-amber-200/18 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                    aria-hidden
+                  />
+                  <Plus size={16} strokeWidth={2.5} />
+                  Add job
+                </motion.button>
+                <p className="text-center text-[11px] font-medium text-slate-500 md:text-left">
+                  Log applications in seconds — stay on streak.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="mb-3 flex items-center gap-2 md:mb-4">
+          <span className="h-px flex-1 max-w-[3rem] rounded-full bg-gradient-to-r from-indigo-400/50 to-transparent" aria-hidden />
+          <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Your momentum</span>
+          <span className="h-px flex-1 rounded-full bg-gradient-to-l from-violet-400/40 to-transparent" aria-hidden />
         </div>
 
         <RankCard refreshKey={rankKey} streakSummary={streakSummary} />
 
-        {/* Stats */}
+        {/* Stats — metric tiles */}
         <motion.div
-          className="mb-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
+          className="mb-10 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4"
           variants={containerVariants}
           initial="hidden"
           whileInView="show"
@@ -403,57 +407,61 @@ export default function Dashboard() {
             <motion.div
               key={s.label}
               variants={itemVariants}
-              whileHover={{ y: -5, transition: { type: 'spring', stiffness: 400, damping: 22 } }}
-              whileTap={{ scale: 0.99 }}
+              whileHover={{ y: -4, transition: { type: 'spring', stiffness: 420, damping: 26 } }}
+              whileTap={{ scale: 0.992 }}
               className={`
-                group relative overflow-hidden rounded-2xl border bg-white/85 p-4 shadow-[0_4px_24px_-8px_rgba(15,23,42,0.08)] backdrop-blur-md transition-shadow duration-300
-                before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:z-[1] before:h-px before:rounded-full before:bg-gradient-to-r before:from-transparent before:via-[#E9A93D]/30 before:to-transparent
-                hover:border-indigo-200/90 hover:bg-white/95 hover:shadow-[0_12px_40px_-12px_rgba(99,102,241,0.16),0_0_36px_rgba(245,185,66,0.08)]
-                ${s.warn ? 'border-amber-200/95 ring-1 ring-amber-400/25' : 'border-slate-200/75 ring-1 ring-indigo-100/40'}
+                group/stat relative overflow-hidden rounded-2xl border bg-white/[0.78] p-4 shadow-[0_4px_28px_-12px_rgba(15,23,42,0.1)] backdrop-blur-md transition-[border-color,box-shadow] duration-300
+                before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:z-[1] before:h-px before:rounded-full before:bg-gradient-to-r before:from-transparent before:via-amber-400/35 before:to-transparent
+                hover:border-indigo-300/70 hover:bg-white/[0.92] hover:shadow-[0_16px_44px_-14px_rgba(99,102,241,0.18),0_0_40px_rgba(245,185,66,0.06)]
+                ${s.warn ? 'border-amber-300/80 ring-1 ring-amber-400/20' : 'border-slate-200/80 ring-1 ring-slate-900/[0.03]'}
               `}
             >
+              <span
+                className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/45 to-transparent opacity-0 transition duration-700 ease-out group-hover/stat:translate-x-full group-hover/stat:opacity-100"
+                aria-hidden
+              />
               {s.trend === 'positive' && (
-                <span className="pointer-events-none absolute right-3 top-3 text-indigo-400/50 transition-colors group-hover:text-indigo-500/70">
+                <span className="pointer-events-none absolute right-3 top-3 text-indigo-400/45 transition-colors duration-300 group-hover/stat:text-indigo-500/75">
                   <ArrowUpRight size={14} strokeWidth={2.5} />
                 </span>
               )}
               <div
-                className={`relative mb-3 inline-flex rounded-xl bg-gradient-to-br p-2.5 ring-1 ${s.iconBg}`}
+                className={`relative mb-3 inline-flex rounded-xl bg-gradient-to-br p-2.5 ring-1 ring-white/60 ${s.iconBg}`}
               >
                 <s.icon size={18} strokeWidth={2.1} />
               </div>
               <div
-                className={`text-[1.65rem] font-black tabular-nums leading-none tracking-tight sm:text-[1.95rem] ${s.valueClass}`}
+                className={`relative text-[1.6rem] font-black tabular-nums leading-none tracking-tight sm:text-[1.9rem] ${s.valueClass}`}
               >
                 <StatValue value={s.value} />
               </div>
               <div
-                className={`mt-2 text-[10px] font-bold uppercase leading-snug tracking-wide sm:text-[11px] ${s.subAccent ?? 'text-slate-500'}`}
+                className={`relative mt-2 text-[10px] font-bold uppercase leading-snug tracking-[0.12em] sm:text-[11px] ${s.subAccent ?? 'text-slate-500'}`}
               >
                 {s.label}
               </div>
               {s.warn && (
-                <p className="mt-1.5 text-[10px] font-medium text-amber-700/90">Time to send more apps</p>
+                <p className="relative mt-2 text-[10px] font-semibold text-amber-800/90">Time to send more apps</p>
               )}
             </motion.div>
           ))}
         </motion.div>
 
-        {/* Recent Applications */}
+        {/* Recent applications */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-20px' }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-2xl border border-indigo-100/90 bg-white/90 shadow-[0_12px_40px_-16px_rgba(49,46,129,0.12)] backdrop-blur-md transition-shadow duration-300 before:pointer-events-none before:absolute before:inset-x-5 before:top-0 before:z-[1] before:h-px before:rounded-full before:bg-gradient-to-r before:from-transparent before:via-[#E9A93D]/28 before:to-transparent hover:shadow-[0_16px_48px_-12px_rgba(99,102,241,0.14)] md:before:inset-x-6"
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="relative overflow-hidden rounded-[1.35rem] border border-indigo-100/85 bg-white/[0.82] shadow-[0_16px_48px_-18px_rgba(49,46,129,0.14)] backdrop-blur-xl transition-shadow duration-300 before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:z-[1] before:h-px before:rounded-full before:bg-gradient-to-r before:from-transparent before:via-amber-400/35 before:to-transparent hover:shadow-[0_22px_56px_-16px_rgba(99,102,241,0.16)] md:before:inset-x-8"
         >
-          <div className="flex items-center justify-between border-b border-indigo-100/70 bg-gradient-to-r from-white via-indigo-50/40 to-amber-50/25 px-5 py-4 md:px-6">
-            <h2 className="text-sm font-bold tracking-tight bg-gradient-to-r from-slate-900 to-indigo-900 bg-clip-text text-transparent">
+          <div className="flex items-center justify-between border-b border-slate-200/70 bg-gradient-to-r from-white via-indigo-50/35 to-amber-50/20 px-5 py-4 md:px-7">
+            <h2 className="text-sm font-bold tracking-tight text-slate-900 md:text-[0.9375rem]">
               Recent applications
             </h2>
             <Link
               href="/tracker"
-              className="text-xs font-semibold text-indigo-700 transition hover:text-violet-800"
+              className="rounded-lg px-2 py-1 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50 hover:text-violet-800"
             >
               View all →
             </Link>
@@ -461,33 +469,35 @@ export default function Dashboard() {
 
           {recent.length === 0 ? (
             <div className="py-20 text-center">
-              <p className="text-sm text-slate-400">No applications yet.</p>
+              <p className="text-sm text-slate-500">No applications yet.</p>
               <button
                 type="button"
-                onClick={() => setAddOpen(true)}
-                className="mt-3 text-sm font-semibold text-indigo-700 transition-colors hover:text-indigo-900"
+                onClick={() => openAddJob()}
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition hover:shadow-indigo-500/35"
               >
-                Add your first application →
+                Add your first application
               </button>
             </div>
           ) : (
-            <div>
+            <div className="divide-y divide-slate-100/90">
               {recent.map((job, idx) => (
                 <motion.div
                   key={job.id}
-                  initial={{ opacity: 0, x: -8 }}
+                  initial={{ opacity: 0, x: -6 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: idx * 0.04, duration: 0.3 }}
-                  className={`flex items-center gap-3 border-b border-slate-100/90 px-4 py-3.5 transition-colors last:border-0 hover:bg-indigo-50/50 md:px-6 md:py-4 border-l-4 ${STATUS_BORDER[job.status]}`}
+                  transition={{ delay: idx * 0.035, duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                  className={`group/row flex items-center gap-3 px-4 py-3.5 transition-colors last:border-0 hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-transparent md:px-6 md:py-4 border-l-[3px] ${STATUS_BORDER[job.status]}`}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold text-slate-800">{job.company}</div>
+                    <div className="truncate text-sm font-semibold text-slate-800 transition group-hover/row:text-indigo-950">
+                      {job.company}
+                    </div>
                     <div className="mt-0.5 truncate text-xs text-slate-500">{job.role}</div>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     {job.dateApplied && (
-                      <span className="hidden text-xs text-slate-400 sm:block">{formatDate(job.dateApplied)}</span>
+                      <span className="hidden text-xs tabular-nums text-slate-400 sm:block">{formatDate(job.dateApplied)}</span>
                     )}
                     <span
                       className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[job.status]}`}
@@ -500,8 +510,6 @@ export default function Dashboard() {
             </div>
           )}
         </motion.div>
-
-        <JobFormModal open={addOpen} onClose={handleJobAdded} />
       </div>
     </div>
   );

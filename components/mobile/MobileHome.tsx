@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -15,10 +15,12 @@ import { Job, UserProgress, STATUS_LABELS } from '@/lib/types';
 import { daysSince } from '@/lib/utils';
 import { autoGhostStaleApplications } from '@/lib/autoGhost';
 import { useMobileNav } from '@/lib/mobile-nav';
-import JobFormModal from '@/components/jobs/JobFormModal';
+import { useOpenAddJob } from '@/components/jobs/JobAddModalProvider';
+import { subscribeJobsMutated } from '@/lib/jobsMutateEvents';
 import JobStreakCard from '@/components/dashboard/JobStreakCard';
 import { computeJobStreak } from '@/lib/job-streak';
 import UserAvatar from '@/components/ui/UserAvatar';
+import { useAchievementLevelUpRequest } from '@/components/achievements/AchievementLevelUpProvider';
 
 const RANK_ICONS: Record<string, LucideIcon> = {
   'Underdog':      Rocket,
@@ -113,30 +115,30 @@ function buildFocusItems(jobs: Job[]): FocusItem[] {
 
 export default function MobileHome() {
   const { profile } = useAuth();
+  const openAddJob = useOpenAddJob();
+  const requestAchievementLevelCheck = useAchievementLevelUpRequest();
   const { setTab } = useMobileNav();
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [progress, setProgress] = useState<UserProgress | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const [rawJobs, p] = await Promise.all([db.getJobs(), db.getUserProgress()]);
-      const j = await autoGhostStaleApplications(rawJobs);
-      const progress = await db.syncJobStreakFromJobs(j, p);
-      setJobs(j);
-      setProgress(progress);
-    }
-    load();
-  }, []);
-
-  async function handleJobAdded() {
-    setAddOpen(false);
-    const rawJobs = await db.getJobs();
+  const refresh = useCallback(async () => {
+    const [rawJobs, p] = await Promise.all([db.getJobs(), db.getUserProgress()]);
     const j = await autoGhostStaleApplications(rawJobs);
     setJobs(j);
-    setProgress(await db.syncJobStreakFromJobs(j));
-  }
+    setProgress(await db.syncJobStreakFromJobs(j, p));
+    void requestAchievementLevelCheck();
+  }, [requestAchievementLevelCheck]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    return subscribeJobsMutated(() => {
+      void refresh();
+    });
+  }, [refresh]);
 
   if (!profile || !progress) {
     return (
@@ -186,7 +188,7 @@ export default function MobileHome() {
             </h1>
           </div>
           <button
-            onClick={() => setAddOpen(true)}
+            onClick={() => openAddJob()}
             className="flex items-center gap-1.5 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-3.5 py-2 rounded-xl text-sm font-semibold shrink-0 active:scale-95 transition-transform"
           >
             <Plus size={15} />
@@ -350,8 +352,6 @@ export default function MobileHome() {
         {/* Bottom padding */}
         <div className="h-2" />
       </div>
-
-      <JobFormModal open={addOpen} onClose={handleJobAdded} />
     </div>
   );
 }

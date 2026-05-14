@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- App store icon — 1024x1024, no rounded corners (OS applies mask) -->
+  <defs>
+    <linearGradient id="ibg" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#1E2042"/>
+      <stop offset="100%" stop-color="#0C0E1E"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4776F0"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="toplight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="white" stop-opacity="0.22"/>
+      <stop offset="55%" stop-color="white" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#ibg)"/>
+
+  <!-- Ambient glow -->
+  <ellipse cx="512" cy="870" rx="380" ry="130" fill="#5B6EF8" opacity="0.12"/>
+
+  <!-- Chevron handle — scale 4.5x from 200px design -->
+  <!-- Original: peak(340,50) posts(289/391, 94→130). Center at 340,128. -->
+  <!-- Scale 4.5, translate so center (340,128)*4.5 → (512,512) -->
+  <!-- tx = 512 - 340*4.5 = 512 - 1530 = -1018, ty = 512 - 128*4.5 = 512 - 576 = -64 -->
+  <g transform="translate(-1018,-64) scale(4.5)">
+    <path d="M 289,130 L 289,94 L 340,50 L 391,94 L 391,130"
+          stroke="white" stroke-width="8.5" fill="none"
+          stroke-linecap="round" stroke-linejoin="round" opacity="0.93"/>
+    <rect x="270" y="130" width="140" height="76" rx="13" fill="url(#brand)"/>
+    <rect x="270" y="130" width="140" height="76" rx="13" fill="url(#toplight)"/>
+    <line x1="270" y1="163" x2="410" y2="163" stroke="white" stroke-width="1" opacity="0.16"/>
+    <circle cx="340" cy="150" r="14" fill="white" opacity="0.07"/>
+    <circle cx="340" cy="150" r="9"  fill="white" opacity="0.15"/>
+    <circle cx="340" cy="150" r="4.5" fill="white" opacity="0.6"/>
+  </g>
+</svg>

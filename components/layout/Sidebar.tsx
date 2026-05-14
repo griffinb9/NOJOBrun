@@ -46,7 +46,7 @@ function NavLink({
       {active && (
         <motion.span
           layoutId="sidebar-nav-pill"
-          className="absolute inset-0 rounded-xl border border-white/80 bg-white/95 shadow-[0_4px_20px_-4px_rgba(99,102,241,0.18),0_0_0_1px_rgba(226,232,240,0.9)] ring-1 ring-indigo-100/70"
+          className="absolute inset-0 rounded-xl border border-white/90 bg-gradient-to-br from-white/98 via-indigo-50/[0.65] to-violet-50/40 shadow-[0_4px_24px_-6px_rgba(99,102,241,0.16),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-18px_32px_-20px_rgba(99,102,241,0.07)] ring-1 ring-indigo-200/50"
           style={{ zIndex: 0 }}
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
         />
@@ -54,16 +54,16 @@ function NavLink({
       {active && (
         <motion.span
           layoutId="sidebar-nav-accent"
-          className="absolute left-0 top-1/2 z-[2] h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-indigo-500 to-violet-500 shadow-[0_0_12px_rgba(99,102,241,0.45)]"
+          className="absolute left-0 top-1/2 z-[2] h-7 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-sky-500 via-indigo-500 to-violet-600 shadow-[0_0_14px_rgba(99,102,241,0.5),0_0_20px_rgba(14,165,233,0.25)]"
           transition={{ type: 'spring', stiffness: 420, damping: 30 }}
         />
       )}
       <Icon
         size={17}
-        className={`relative z-[1] shrink-0 transition-all duration-200 ${active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500'} ${active ? '' : 'group-hover:scale-105'}`}
+        className={`relative z-[1] shrink-0 transition-all duration-200 ${active ? 'text-indigo-600 drop-shadow-[0_0_10px_rgba(99,102,241,0.2)]' : 'text-slate-400 group-hover:text-indigo-500'} ${active ? '' : 'group-hover:scale-105'}`}
         strokeWidth={active ? 2.25 : 2}
       />
-      <span className={`relative z-[1] ${active ? 'font-semibold' : ''}`}>{label}</span>
+      <span className={`relative z-[1] tracking-tight ${active ? 'font-semibold text-slate-900' : ''}`}>{label}</span>
     </MotionLink>
   );
 }
@@ -82,8 +82,7 @@ export default function Sidebar() {
   return (
     <>
       <aside
-        className="relative hidden min-h-screen w-56 shrink-0 flex-col border-r border-slate-200/70 bg-gradient-to-b from-slate-50/99 via-white to-indigo-50/[0.35] px-3 py-5 backdrop-blur-xl md:flex"
-        style={{ boxShadow: '4px 0 28px -12px rgba(15, 23, 42, 0.07)' }}
+        className="fixed left-0 top-0 z-40 hidden h-svh w-56 shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-slate-200/75 bg-gradient-to-b from-slate-50/99 via-white to-indigo-50/[0.35] px-3 py-5 shadow-[4px_0_32px_-14px_rgba(15,23,42,0.09),inset_-1px_0_0_rgba(255,255,255,0.55)] backdrop-blur-xl md:flex"
       >
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_50%_at_0%_0%,rgba(99,102,241,0.06),transparent_58%),radial-gradient(ellipse_80%_40%_at_100%_100%,rgba(245,185,66,0.04),transparent_55%)]"

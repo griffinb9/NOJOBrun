@@ -629,3 +629,46 @@ create policy "profile_pictures_delete_own"
     bucket_id = 'profile-pictures'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- ── Achievement level-up notifications (cross-device) ─────────────────────
+
+create table if not exists public.achievement_last_notified_tier (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  achievement_key text not null,
+  tier_token text not null,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, achievement_key)
+);
+
+create table if not exists public.achievement_notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  achievement_key text not null,
+  old_tier text not null,
+  new_tier text not null,
+  seen_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists achievement_notifications_user_unseen_idx
+  on public.achievement_notifications (user_id, created_at)
+  where seen_at is null;
+
+alter table public.achievement_last_notified_tier enable row level security;
+alter table public.achievement_notifications enable row level security;
+
+drop policy if exists "achievement_last_notified_tier_own" on public.achievement_last_notified_tier;
+create policy "achievement_last_notified_tier_own"
+  on public.achievement_last_notified_tier
+  for all
+  to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+drop policy if exists "achievement_notifications_own" on public.achievement_notifications;
+create policy "achievement_notifications_own"
+  on public.achievement_notifications
+  for all
+  to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());

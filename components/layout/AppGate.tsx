@@ -7,6 +7,8 @@ import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import MobileLayout from '@/components/mobile/MobileLayout';
 import { MobileNavProvider } from '@/lib/mobile-nav';
+import { AchievementLevelUpProvider } from '@/components/achievements/AchievementLevelUpProvider';
+import { JobAddModalProvider } from '@/components/jobs/JobAddModalProvider';
 
 export default function AppGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -30,25 +32,29 @@ export default function AppGate({ children }: { children: React.ReactNode }) {
     || pathname === '/friends';
 
   return (
-    <MobileNavProvider>
-      {/* ── Desktop layout ──────────────────────────────────────── */}
-      <div className="hidden md:flex min-h-screen">
-        <Sidebar />
-        <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
-          {children}
-        </main>
-      </div>
+    <AchievementLevelUpProvider>
+      <JobAddModalProvider>
+      <MobileNavProvider>
+        {/* ── Desktop: fixed sidebar + document scroll only (no nested main scrollport) ── */}
+        <div className="relative hidden md:block">
+          <Sidebar />
+          <main className="relative min-w-0 overflow-x-clip md:ml-56">
+            {children}
+          </main>
+        </div>
 
-      {/* ── Mobile layout ───────────────────────────────────────── */}
-      <div className="md:hidden flex flex-col min-h-screen pb-16">
-        {showPageOnMobile ? (
-          <main className="flex-1 overflow-y-auto">{children}</main>
-        ) : (
-          <MobileLayout />
-        )}
-      </div>
+        {/* ── Mobile layout ───────────────────────────────────────── */}
+        <div className="md:hidden flex flex-col min-h-screen pb-16">
+          {showPageOnMobile ? (
+            <main className="flex-1 overflow-y-auto">{children}</main>
+          ) : (
+            <MobileLayout />
+          )}
+        </div>
 
-      <MobileNav />
-    </MobileNavProvider>
+        <MobileNav />
+      </MobileNavProvider>
+      </JobAddModalProvider>
+    </AchievementLevelUpProvider>
   );
 }

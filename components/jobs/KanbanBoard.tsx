@@ -14,7 +14,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import { Plus, RotateCcw, Upload, Target } from 'lucide-react';
+import { Plus, RotateCcw, Upload, Target, Search, X } from 'lucide-react';
 import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -23,11 +23,14 @@ import { DEFAULT_TRACKER_COLUMN_IDS, normalizeTrackerColumnOrder } from '@/lib/t
 import { now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
 import { autoGhostStaleApplications } from '@/lib/autoGhost';
+import { jobMatchesTrackerSearch } from '@/lib/jobSearch';
 import KanbanSortableColumn from './KanbanSortableColumn';
 import JobCard from './JobCard';
-import JobFormModal from './JobFormModal';
 import JobDetailModal from './JobDetailModal';
 import ImportJobsModal from './ImportJobsModal';
+import { useAchievementLevelUpRequest } from '@/components/achievements/AchievementLevelUpProvider';
+import { useOpenAddJob } from '@/components/jobs/JobAddModalProvider';
+import { subscribeJobsMutated } from '@/lib/jobsMutateEvents';
 
 function getTrackerTitle(fullName?: string | null): string {
   const name = fullName?.trim();
@@ -57,17 +60,18 @@ function useColumnReorderEnabled() {
 }
 
 export default function KanbanBoard() {
+  const openAddJob = useOpenAddJob();
   const { profile, refreshProfile } = useAuth();
+  const requestAchievementLevelCheck = useAchievementLevelUpRequest();
   const appliedManualSort = profile?.appliedManualSort ?? false;
   const columnReorderEnabled = useColumnReorderEnabled();
   const [localColumnOrder, setLocalColumnOrder] = useState<JobStatus[]>(DEFAULT_TRACKER_COLUMN_IDS);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeJob, setActiveJob] = useState<Job | null>(null);
   const [activeColumnId, setActiveColumnId] = useState<JobStatus | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
-  const [addStatus, setAddStatus] = useState<JobStatus>('applied');
   const [detailJob, setDetailJob] = useState<Job | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [jobSearch, setJobSearch] = useState('');
 
   const load = useCallback(async () => {
     const raw = await db.getJobs();
@@ -75,10 +79,17 @@ export default function KanbanBoard() {
     const { jobs: normalized, changed } = ensureSortOrders(afterGhost, appliedManualSort);
     if (changed) await db.saveJobs(normalized);
     setJobs(normalized);
-  }, [appliedManualSort]);
+    void requestAchievementLevelCheck();
+  }, [appliedManualSort, requestAchievementLevelCheck]);
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  useEffect(() => {
+    return subscribeJobsMutated(() => {
+      void load();
+    });
   }, [load]);
 
   useEffect(() => {
@@ -215,6 +226,7 @@ export default function KanbanBoard() {
     // Optimistic update then persist
     setJobs(updatedJobs);
     await db.saveJobs(updatedJobs);
+    void requestAchievementLevelCheck();
 
     if (
       draggedJob.status === newStatus
@@ -226,11 +238,6 @@ export default function KanbanBoard() {
       await db.saveProfile({ ...profile, appliedManualSort: true, updatedAt: ts });
       await refreshProfile();
     }
-  }
-
-  function openAdd(status: JobStatus) {
-    setAddStatus(status);
-    setAddOpen(true);
   }
 
   async function resetColumnOrder() {
@@ -254,56 +261,54 @@ export default function KanbanBoard() {
   }).length;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* ── Header ── */}
-      <div className="relative flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-stone-100 bg-white overflow-hidden">
-        {/* Background glow blob */}
-        <div className="absolute -inset-2 bg-gradient-to-br from-blue-500/[0.04] to-violet-500/[0.06] blur-2xl pointer-events-none" />
+    <div className="flex min-h-0 flex-1 flex-col bg-gradient-to-b from-[#eceef8] via-[#f3f4fb] to-[#e8ecf4]">
+      {/* ── Header (frosted — matches Dashboard shell) ── */}
+      <div className="relative flex items-center justify-between overflow-x-clip border-b border-indigo-100/50 bg-white/72 px-4 py-3.5 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset] backdrop-blur-md md:px-7 md:py-4">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-indigo-50/40 via-transparent to-amber-50/20" aria-hidden />
+        <div className="pointer-events-none absolute -inset-1 bg-gradient-to-br from-blue-500/[0.05] to-violet-500/[0.06] blur-2xl" aria-hidden />
 
-        {/* Left: title + stats */}
-        <div className="relative">
-          <div className="flex items-center gap-2 group cursor-default">
+        <div className="relative min-w-0">
+          <div className="group flex cursor-default items-center gap-2.5">
             <Target
               size={18}
               strokeWidth={2}
-              className="text-violet-500 shrink-0 transition-all duration-200 group-hover:scale-110 group-hover:text-violet-400"
+              className="shrink-0 text-indigo-500 transition-all duration-200 group-hover:scale-105 group-hover:text-violet-500"
             />
-            <h1 className="text-[1.35rem] font-extrabold tracking-tight leading-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent transition-opacity duration-200 group-hover:opacity-80">
+            <h1 className="bg-gradient-to-r from-slate-900 via-indigo-700 to-violet-700 bg-clip-text text-[1.35rem] font-extrabold leading-tight tracking-tight text-transparent md:text-[1.4rem]">
               {trackerTitle}
             </h1>
           </div>
 
-          {/* Subtitle + inline stats */}
-          <div className="flex items-center flex-wrap gap-x-2.5 gap-y-0.5 mt-1">
-            <p className="text-[11px] text-stone-400 leading-none">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
+            <p className="text-[11px] leading-none text-slate-500">
               Track your pipeline. Move jobs forward.
             </p>
             {totalApps > 0 && (
               <>
-                <span className="text-stone-300 text-[10px]">·</span>
-                <span className="text-[11px] font-semibold text-blue-600 leading-none tabular-nums">
+                <span className="text-[10px] text-slate-300">·</span>
+                <span className="text-[11px] font-semibold leading-none text-sky-700 tabular-nums">
                   {totalApps} app{totalApps !== 1 ? 's' : ''}
                 </span>
                 {activeCount > 0 && (
                   <>
-                    <span className="text-stone-300 text-[10px]">·</span>
-                    <span className="text-[11px] font-semibold text-violet-600 leading-none tabular-nums">
+                    <span className="text-[10px] text-slate-300">·</span>
+                    <span className="text-[11px] font-semibold leading-none text-indigo-600 tabular-nums">
                       {activeCount} active
                     </span>
                   </>
                 )}
                 {offerCount > 0 && (
                   <>
-                    <span className="text-stone-300 text-[10px]">·</span>
-                    <span className="text-[11px] font-semibold text-emerald-600 leading-none tabular-nums">
+                    <span className="text-[10px] text-slate-300">·</span>
+                    <span className="text-[11px] font-semibold leading-none text-emerald-700 tabular-nums">
                       {offerCount} offer{offerCount !== 1 ? 's' : ''}
                     </span>
                   </>
                 )}
                 {followUps > 0 && (
                   <>
-                    <span className="text-stone-300 text-[10px]">·</span>
-                    <span className="text-[11px] font-semibold text-amber-500 leading-none tabular-nums">
+                    <span className="text-[10px] text-slate-300">·</span>
+                    <span className="text-[11px] font-semibold leading-none text-amber-600 tabular-nums">
                       {followUps} follow-up{followUps !== 1 ? 's' : ''} needed
                     </span>
                   </>
@@ -313,13 +318,12 @@ export default function KanbanBoard() {
           </div>
         </div>
 
-        {/* Right: action buttons */}
-        <div className="relative flex items-center gap-2">
+        <div className="relative flex shrink-0 items-center gap-2">
           {columnReorderEnabled && isCustomColumnOrder && (
             <button
               type="button"
               onClick={() => void resetColumnOrder()}
-              className="hidden md:inline-flex items-center gap-1.5 border border-transparent text-stone-500 px-2 py-2 rounded-xl text-xs font-medium hover:bg-stone-50 hover:border-stone-200 hover:text-stone-700 active:scale-[0.97] transition-all"
+              className="hidden items-center gap-1.5 rounded-xl border border-transparent px-2.5 py-2 text-xs font-medium text-slate-500 transition-all hover:border-slate-200/90 hover:bg-white/80 hover:text-slate-800 active:scale-[0.97] md:inline-flex"
               title="Restore default column order"
             >
               <RotateCcw size={14} strokeWidth={2} />
@@ -327,15 +331,17 @@ export default function KanbanBoard() {
             </button>
           )}
           <button
+            type="button"
             onClick={() => setImportOpen(true)}
-            className="flex items-center gap-2 border border-stone-200 text-stone-600 px-2.5 md:px-3.5 py-2 rounded-xl text-sm font-medium hover:bg-stone-50 hover:border-stone-300 active:scale-[0.97] transition-all"
+            className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white/90 px-2.5 py-2 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-indigo-200/80 hover:bg-white hover:text-slate-800 active:scale-[0.97] md:px-3.5"
           >
             <Upload size={14} strokeWidth={2} />
             <span className="hidden sm:inline">Import</span>
           </button>
           <button
-            onClick={() => openAdd('applied')}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-violet-700 active:scale-[0.97] transition-all shadow-sm"
+            type="button"
+            onClick={() => openAddJob('applied')}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-slate-900 via-indigo-600 to-violet-700 px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_28px_-8px_rgba(79,70,229,0.4)] transition-all hover:shadow-[0_10px_32px_-8px_rgba(67,56,202,0.45)] active:scale-[0.97]"
           >
             <Plus size={15} strokeWidth={2.5} />
             Add Job
@@ -343,8 +349,31 @@ export default function KanbanBoard() {
         </div>
       </div>
 
-      {/* Board */}
-      <div className="flex-1 overflow-x-auto">
+      <div className="flex shrink-0 items-center gap-2 border-b border-slate-200/55 bg-white/55 px-4 py-2.5 backdrop-blur-sm md:px-7">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-2 shadow-sm transition-shadow focus-within:border-indigo-300/70 focus-within:ring-2 focus-within:ring-indigo-200/50">
+          <Search size={17} className="shrink-0 text-slate-400" strokeWidth={2} aria-hidden />
+          <input
+            type="search"
+            value={jobSearch}
+            onChange={(e) => setJobSearch(e.target.value)}
+            placeholder={'Search company\u2026'}
+            className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+            aria-label="Search jobs by company or role"
+          />
+        </div>
+        {jobSearch.trim() !== '' && (
+          <button
+            type="button"
+            onClick={() => setJobSearch('')}
+            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all hover:border-indigo-200/70 hover:bg-indigo-50/50 active:scale-[0.98]"
+          >
+            <X size={14} strokeWidth={2} />
+            Clear
+          </button>
+        )}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-x-auto">
         <DndContext
           sensors={sensors}
           collisionDetection={detectCollision}
@@ -352,39 +381,44 @@ export default function KanbanBoard() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={localColumnOrder} strategy={horizontalListSortingStrategy}>
-            <div className="flex gap-4 p-6 min-w-max h-full">
-              {orderedColumns.map((col) => (
-                <KanbanSortableColumn
-                  key={col.id}
-                  column={col}
-                  jobs={sortedByOrder(col.id)}
-                  onAddJob={() => openAdd(col.id)}
-                  onSelectJob={setDetailJob}
-                  reorderEnabled={columnReorderEnabled}
-                />
-              ))}
+            <div className="flex min-h-full min-w-max gap-5 px-5 py-6 pb-10 md:gap-6 md:px-8 md:py-8">
+              {orderedColumns.map((col) => {
+                const fullColumn = sortedByOrder(col.id);
+                const visibleJobs = jobSearch.trim()
+                  ? fullColumn.filter((j) => jobMatchesTrackerSearch(j, jobSearch))
+                  : fullColumn;
+                const emptyWhenFiltered =
+                  jobSearch.trim() && fullColumn.length > 0 && visibleJobs.length === 0
+                    ? 'No matching companies found.'
+                    : undefined;
+                return (
+                  <KanbanSortableColumn
+                    key={col.id}
+                    column={col}
+                    jobs={visibleJobs}
+                    emptyWhenFiltered={emptyWhenFiltered}
+                    onAddJob={() => openAddJob(col.id)}
+                    onSelectJob={setDetailJob}
+                    reorderEnabled={columnReorderEnabled}
+                  />
+                );
+              })}
             </div>
           </SortableContext>
 
-          <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
+          <DragOverlay dropAnimation={{ duration: 200, easing: 'ease-out' }}>
             {activeJob && <JobCard job={activeJob} onSelect={() => {}} isDragging />}
             {!activeJob && activeColumnId && (
-              <div className="flex w-64 flex-col rounded-2xl border border-indigo-200/80 bg-white/95 px-3 py-3 shadow-2xl shadow-indigo-500/20 ring-2 ring-indigo-300/40 backdrop-blur-md">
-                <span className="text-[13px] font-bold tracking-tight text-slate-800">
+              <div className="flex w-64 flex-col rounded-2xl border border-indigo-200/70 bg-white/92 px-3.5 py-3 shadow-[0_24px_48px_-12px_rgba(67,56,202,0.25)] ring-2 ring-indigo-300/35 backdrop-blur-md">
+                <span className="text-[13px] font-semibold tracking-tight text-slate-800">
                   {KANBAN_COLUMNS.find((c) => c.id === activeColumnId)?.label ?? activeColumnId}
                 </span>
-                <span className="mt-1 text-[11px] text-slate-400">Moving column…</span>
+                <span className="mt-1 text-[11px] text-slate-500">Moving column…</span>
               </div>
             )}
           </DragOverlay>
         </DndContext>
       </div>
-
-      <JobFormModal
-        open={addOpen}
-        onClose={() => { setAddOpen(false); load(); }}
-        initialStatus={addStatus}
-      />
 
       <ImportJobsModal
         open={importOpen}

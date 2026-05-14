@@ -18,6 +18,7 @@ import {
   PublicFriendSearchResult,
   IncomingFriendPreview,
   WeeklyAppsLeaderboardEntry,
+  type AchievementNotification,
 } from './types';
 import { mergeHasResponseForSave } from './job-response';
 import { normalizeTrackerColumnOrder } from './trackerColumns';
@@ -25,6 +26,14 @@ import { computeJobStreak } from './job-streak';
 import { maxApplicationsInOneDay, countUnlockedAchievements } from './friend-stats';
 import { now } from './utils';
 import { validateAvatarFile, avatarFileExtension } from './avatar';
+import {
+  computeAllAchievements,
+  getAchievementDefById,
+  achievementTierToken,
+  achievementTierRankForToken,
+} from './achievements';
+import { emitAchievementLevelCheck } from './achievementLevelUpEmitter';
+import { emitJobsMutated } from './jobsMutateEvents';
 
 const PROFILE_AVATAR_BUCKET = 'profile-pictures';
 
@@ -388,6 +397,7 @@ export const db = {
       .upsert(merged.map((j) => jobToRow(j, userId)), { onConflict: 'id' });
     const fresh = await db.getJobs();
     await db.syncJobStreakFromJobs(fresh);
+    emitJobsMutated();
   },
 
   async addJob(job: Job): Promise<void> {
@@ -396,6 +406,7 @@ export const db = {
     await supabase.from('applications').insert(jobToRow(merged, userId));
     const fresh = await db.getJobs();
     await db.syncJobStreakFromJobs(fresh);
+    emitJobsMutated();
   },
 
   async updateJob(job: Job): Promise<void> {
@@ -408,12 +419,14 @@ export const db = {
       .eq('id', job.id);
     const fresh = await db.getJobs();
     await db.syncJobStreakFromJobs(fresh);
+    emitJobsMutated();
   },
 
   async deleteJob(id: string): Promise<void> {
     await supabase.from('applications').delete().eq('id', id);
     const fresh = await db.getJobs();
     await db.syncJobStreakFromJobs(fresh);
+    emitJobsMutated();
   },
 
   async getJob(id: string): Promise<Job | null> {
@@ -440,6 +453,7 @@ export const db = {
   async addStory(story: Story): Promise<void> {
     const userId = await uid();
     await supabase.from('stories').insert(storyToRow(story, userId));
+    emitAchievementLevelCheck();
   },
 
   async updateStory(story: Story): Promise<void> {
@@ -448,10 +462,12 @@ export const db = {
       .from('stories')
       .update(storyToRow(story, userId))
       .eq('id', story.id);
+    emitAchievementLevelCheck();
   },
 
   async deleteStory(id: string): Promise<void> {
     await supabase.from('stories').delete().eq('id', id);
+    emitAchievementLevelCheck();
   },
 
   // ── Point Events ───────────────────────────────────────────────────────────
@@ -514,7 +530,9 @@ export const db = {
       && (progress.maxAppsOneDay ?? 0) === maxDay
       && (progress.achievementsUnlockedCount ?? 0) === achUnlocked;
     if (!same) await db.saveUserProgress(next);
-    return same ? progress : next;
+    const out = same ? progress : next;
+    emitAchievementLevelCheck();
+    return out;
   },
 
   async saveUserProgress(progress: UserProgress): Promise<void> {
@@ -809,5 +827,120 @@ export const db = {
       appsThisWeek: typeof r.apps_this_week === 'number' ? r.apps_this_week : Number(r.apps_this_week) || 0,
       avatarUrl: r.avatar_url ?? null,
     }));
+  },
+
+  /**
+   * Compare current achievement tiers to stored baseline; enqueue unseen level-up rows.
+   * Safe if tables are missing (no-op on error).
+   */
+  async syncAchievementLevelUpQueue(): Promise<void> {
+    try {
+      const userId = await uid();
+      const [{ data: lastRows, error: e1 }, { data: pendingRows, error: e2 }] = await Promise.all([
+        supabase.from('achievement_last_notified_tier').select('achievement_key, tier_token').eq('user_id', userId),
+        supabase.from('achievement_notifications').select('achievement_key').eq('user_id', userId).is('seen_at', null),
+      ]);
+      if (e1 || e2) return;
+
+      const lastMap = new Map(
+        (lastRows ?? []).map((r: { achievement_key: string; tier_token: string }) => [r.achievement_key, r.tier_token]),
+      );
+      const pendingKeys = new Set(
+        (pendingRows ?? []).map((r: { achievement_key: string }) => r.achievement_key),
+      );
+
+      const [jobs, pointEvents, stories] = await Promise.all([
+        db.getJobs(),
+        db.getPointEvents(),
+        db.getStories(),
+      ]);
+      const computed = computeAllAchievements({ jobs, pointEvents, stories });
+      const ts = now();
+
+      for (const a of computed) {
+        const def = getAchievementDefById(a.id);
+        if (!def) continue;
+        const curToken = achievementTierToken(a);
+        const curRank = achievementTierRankForToken(def, curToken);
+        const storedToken = lastMap.get(a.id) ?? null;
+
+        if (storedToken === null) {
+          const { error } = await supabase.from('achievement_last_notified_tier').upsert(
+            { user_id: userId, achievement_key: a.id, tier_token: curToken, updated_at: ts },
+            { onConflict: 'user_id,achievement_key' },
+          );
+          if (!error) lastMap.set(a.id, curToken);
+          continue;
+        }
+
+        const storedRank = achievementTierRankForToken(def, storedToken);
+        if (curRank <= storedRank) continue;
+        if (pendingKeys.has(a.id)) continue;
+
+        const { error: insErr } = await supabase.from('achievement_notifications').insert({
+          user_id: userId,
+          achievement_key: a.id,
+          old_tier: storedToken,
+          new_tier: curToken,
+        });
+        if (!insErr) pendingKeys.add(a.id);
+      }
+    } catch {
+      /* missing migration / offline */
+    }
+  },
+
+  async fetchUnseenAchievementNotifications(): Promise<AchievementNotification[]> {
+    try {
+      const userId = await uid();
+      const { data, error } = await supabase
+        .from('achievement_notifications')
+        .select('id, achievement_key, old_tier, new_tier, created_at')
+        .eq('user_id', userId)
+        .is('seen_at', null)
+        .order('created_at', { ascending: true });
+      if (error || !data) return [];
+      return data.map((r: {
+        id: string;
+        achievement_key: string;
+        old_tier: string;
+        new_tier: string;
+        created_at: string;
+      }) => ({
+        id: r.id,
+        achievementKey: r.achievement_key,
+        oldTier: r.old_tier,
+        newTier: r.new_tier,
+        createdAt: r.created_at,
+      }));
+    } catch {
+      return [];
+    }
+  },
+
+  async markAchievementNotificationSeen(id: string): Promise<void> {
+    const userId = await uid();
+    const ts = now();
+    const { data: row, error } = await supabase
+      .from('achievement_notifications')
+      .select('achievement_key, new_tier')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error || !row) return;
+    await supabase
+      .from('achievement_notifications')
+      .update({ seen_at: ts })
+      .eq('id', id)
+      .eq('user_id', userId);
+    await supabase.from('achievement_last_notified_tier').upsert(
+      {
+        user_id: userId,
+        achievement_key: row.achievement_key,
+        tier_token: row.new_tier,
+        updated_at: ts,
+      },
+      { onConflict: 'user_id,achievement_key' },
+    );
   },
 };

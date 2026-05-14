@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
 import { db } from '@/lib/db';
@@ -8,12 +8,21 @@ import { newId, now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
 import { coerceLoadedSalaryForForm } from '@/lib/salaryRanges';
 import SalaryRangeSelect from '@/components/jobs/SalaryRangeSelect';
+import {
+  clearJobAddDraft,
+  isAddJobFormDirty,
+  readJobAddDraft,
+  writeJobAddDraftFull,
+  type JobAddDraftFormV1,
+} from '@/lib/jobFormDraftSession';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   job?: Job;
   initialStatus?: JobStatus;
+  /** Add-job flow: persist draft in sessionStorage + confirm discard on close. */
+  persistDraft?: boolean;
 }
 
 const empty: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -31,34 +40,121 @@ const empty: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> = {
   contactEmail: '',
 };
 
-export default function JobFormModal({ open, onClose, job, initialStatus }: Props) {
+function formToDraftShape(f: typeof empty): JobAddDraftFormV1 {
+  return {
+    company: f.company,
+    role: f.role,
+    location: f.location ?? '',
+    salary: f.salary ?? '',
+    status: f.status,
+    dateApplied: f.dateApplied ?? '',
+    interviewDates: [...(f.interviewDates ?? [])],
+    jobUrl: f.jobUrl ?? '',
+    jobDescription: f.jobDescription ?? '',
+    notes: f.notes ?? '',
+    contactName: f.contactName ?? '',
+    contactEmail: f.contactEmail ?? '',
+  };
+}
+
+function draftShapeToForm(d: JobAddDraftFormV1): typeof empty {
+  return {
+    company: d.company,
+    role: d.role,
+    location: d.location,
+    salary: d.salary,
+    status: d.status,
+    dateApplied: d.dateApplied,
+    interviewDates: [...(d.interviewDates ?? [])],
+    jobUrl: d.jobUrl,
+    jobDescription: d.jobDescription,
+    notes: d.notes,
+    contactName: d.contactName,
+    contactEmail: d.contactEmail,
+  };
+}
+
+export default function JobFormModal({ open, onClose, job, initialStatus, persistDraft }: Props) {
   const [form, setForm] = useState({ ...empty });
   const [interviewInput, setInterviewInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const baselineStatusRef = useRef<JobStatus>('applied');
+  const baselineDateRef = useRef<string>('');
+  const prevOpenRef = useRef(false);
+
+  const flushDraft = useCallback(
+    (modalOpen: boolean, formArg: typeof empty, interviewInputArg: string, initStatus: JobStatus) => {
+      if (!persistDraft || job) return;
+      writeJobAddDraftFull({
+        modalOpen,
+        initialStatus: initStatus,
+        form: formToDraftShape(formArg),
+        interviewInput: interviewInputArg,
+      });
+    },
+    [persistDraft, job],
+  );
 
   useEffect(() => {
-    if (open) {
-      if (job) {
-        setForm({
-          company: job.company,
-          role: job.role,
-          location: job.location ?? '',
-          salary: coerceLoadedSalaryForForm(job.salary),
-          status: job.status,
-          dateApplied: job.dateApplied ?? '',
-          interviewDates: job.interviewDates ?? [],
-          jobUrl: job.jobUrl ?? '',
-          jobDescription: job.jobDescription ?? '',
-          notes: job.notes ?? '',
-          contactName: job.contactName ?? '',
-          contactEmail: job.contactEmail ?? '',
-        });
-      } else {
-        setForm({ ...empty, status: initialStatus ?? 'applied', dateApplied: new Date().toISOString().split('T')[0] });
-      }
-      setInterviewInput('');
+    if (!open) {
+      prevOpenRef.current = false;
+      return;
     }
-  }, [open, job]);
+
+    const justOpened = !prevOpenRef.current;
+    prevOpenRef.current = true;
+    if (!justOpened) return;
+
+    if (job) {
+      setForm({
+        company: job.company,
+        role: job.role,
+        location: job.location ?? '',
+        salary: coerceLoadedSalaryForForm(job.salary),
+        status: job.status,
+        dateApplied: job.dateApplied ?? '',
+        interviewDates: job.interviewDates ?? [],
+        jobUrl: job.jobUrl ?? '',
+        jobDescription: job.jobDescription ?? '',
+        notes: job.notes ?? '',
+        contactName: job.contactName ?? '',
+        contactEmail: job.contactEmail ?? '',
+      });
+      setInterviewInput('');
+      return;
+    }
+
+    const st = initialStatus ?? 'applied';
+    const today = new Date().toISOString().split('T')[0];
+
+    if (persistDraft) {
+      const d = readJobAddDraft();
+      if (d?.form) {
+        setForm(draftShapeToForm(d.form));
+        setInterviewInput(d.interviewInput ?? '');
+        baselineStatusRef.current = d.form.status;
+        baselineDateRef.current = (d.form.dateApplied || '').trim() || today;
+        return;
+      }
+    }
+
+    setForm({ ...empty, status: st, dateApplied: today });
+    setInterviewInput('');
+    baselineStatusRef.current = st;
+    baselineDateRef.current = today;
+  }, [open, job, initialStatus, persistDraft]);
+
+  useEffect(() => {
+    if (!open || !persistDraft || job) return;
+    if (persistTimer.current) clearTimeout(persistTimer.current);
+    persistTimer.current = setTimeout(() => {
+      flushDraft(true, form, interviewInput, initialStatus ?? form.status);
+    }, 320);
+    return () => {
+      if (persistTimer.current) clearTimeout(persistTimer.current);
+    };
+  }, [open, persistDraft, job, form, interviewInput, initialStatus, flushDraft]);
 
   function set(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -72,6 +168,27 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
 
   function removeInterviewDate(d: string) {
     setForm((f) => ({ ...f, interviewDates: f.interviewDates?.filter((x) => x !== d) }));
+  }
+
+  function attemptClose() {
+    if (job) {
+      onClose();
+      return;
+    }
+    if (persistDraft) {
+      const dirty = isAddJobFormDirty(
+        formToDraftShape(form),
+        interviewInput,
+        baselineStatusRef.current,
+        baselineDateRef.current,
+      );
+      if (dirty) {
+        const ok = window.confirm('Discard this job draft?');
+        if (!ok) return;
+      }
+      clearJobAddDraft();
+    }
+    onClose();
   }
 
   async function save() {
@@ -105,6 +222,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
         if (form.notes?.trim()) await awardPoints('notes_added', id);
       }
 
+      if (persistDraft && !job) clearJobAddDraft();
       onClose();
     } finally {
       setSaving(false);
@@ -115,11 +233,11 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30" onClick={attemptClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-stone-800">{job ? 'Edit Job' : 'Add Job'}</h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600">
+          <button type="button" onClick={attemptClose} className="text-stone-400 hover:text-stone-600">
             <X size={20} />
           </button>
         </div>
@@ -181,7 +299,7 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
                 {form.interviewDates!.map((d) => (
                   <span key={d} className="flex items-center gap-1 text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full">
                     {d}
-                    <button onClick={() => removeInterviewDate(d)} className="hover:text-red-500">×</button>
+                    <button type="button" onClick={() => removeInterviewDate(d)} className="hover:text-red-500">×</button>
                   </span>
                 ))}
               </div>
@@ -217,10 +335,11 @@ export default function JobFormModal({ open, onClose, job, initialStatus }: Prop
         </div>
 
         <div className="flex gap-2 mt-6 justify-end">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700 rounded-lg">
+          <button type="button" onClick={attemptClose} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700 rounded-lg">
             Cancel
           </button>
           <button
+            type="button"
             onClick={save}
             disabled={!form.company.trim() || !form.role.trim() || saving}
             className="px-4 py-2 text-sm bg-violet-600 text-white rounded-xl hover:bg-violet-700 font-medium disabled:opacity-40"

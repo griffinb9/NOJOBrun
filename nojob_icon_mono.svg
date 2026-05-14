@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Monochrome app icon — white on black -->
+  <rect width="1024" height="1024" fill="#0D0F1E"/>
+
+  <g transform="translate(-1018,-64) scale(4.5)">
+    <path d="M 289,130 L 289,94 L 340,50 L 391,94 L 391,130"
+          stroke="white" stroke-width="8.5" fill="none"
+          stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+    <rect x="270" y="130" width="140" height="76" rx="13" fill="white" opacity="0.2"/>
+    <line x1="270" y1="163" x2="410" y2="163" stroke="white" stroke-width="1" opacity="0.3"/>
+    <circle cx="340" cy="150" r="9"  fill="white" opacity="0.35"/>
+    <circle cx="340" cy="150" r="4.5" fill="white" opacity="0.9"/>
+  </g>
+</svg>

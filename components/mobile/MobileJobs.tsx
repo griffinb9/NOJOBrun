@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus, ChevronDown, FileText, StickyNote, Pencil, Check,
-  X, Loader2,
+  X, Loader2, Search,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Job, JobStatus, KANBAN_COLUMNS, STATUS_COLORS, STATUS_LABELS } from '@/lib/types';
@@ -13,8 +13,12 @@ import { normalizeTrackerColumnOrder } from '@/lib/trackerColumns';
 import { now } from '@/lib/utils';
 import { awardPoints } from '@/lib/points';
 import { autoGhostStaleApplications } from '@/lib/autoGhost';
+import { jobMatchesTrackerSearch } from '@/lib/jobSearch';
 import { formatDate } from '@/lib/utils';
 import JobFormModal from '@/components/jobs/JobFormModal';
+import { useOpenAddJob } from '@/components/jobs/JobAddModalProvider';
+import { subscribeJobsMutated } from '@/lib/jobsMutateEvents';
+import { useAchievementLevelUpRequest } from '@/components/achievements/AchievementLevelUpProvider';
 
 type Filter = 'all' | JobStatus;
 
@@ -39,21 +43,30 @@ const STATUS_DOT: Record<JobStatus, string> = {
 
 export default function MobileJobs() {
   const { profile } = useAuth();
+  const openAddJob = useOpenAddJob();
+  const requestAchievementLevelCheck = useAchievementLevelUpRequest();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
   const [loading, setLoading] = useState(true);
-  const [addOpen, setAddOpen] = useState(false);
   const [editJob, setEditJob] = useState<Job | null>(null);
   const [statusPickerJob, setStatusPickerJob] = useState<Job | null>(null);
+  const [jobSearch, setJobSearch] = useState('');
 
   const load = useCallback(async () => {
     const raw = await db.getJobs();
     const ghosted = await autoGhostStaleApplications(raw);
     setJobs(ghosted);
     setLoading(false);
-  }, []);
+    void requestAchievementLevelCheck();
+  }, [requestAchievementLevelCheck]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    return subscribeJobsMutated(() => {
+      void load();
+    });
+  }, [load]);
 
   const filterTabs = useMemo(() => {
     const order = normalizeTrackerColumnOrder(profile?.trackerColumnOrder);
@@ -68,7 +81,11 @@ export default function MobileJobs() {
     return order.map((id) => KANBAN_COLUMNS.find((c) => c.id === id)).filter(Boolean) as typeof KANBAN_COLUMNS;
   }, [profile?.trackerColumnOrder]);
 
-  const filtered = filter === 'all' ? jobs : jobs.filter((j) => j.status === filter);
+  const filteredByStatus = filter === 'all' ? jobs : jobs.filter((j) => j.status === filter);
+  const filtered =
+    jobSearch.trim() === ''
+      ? filteredByStatus
+      : filteredByStatus.filter((j) => jobMatchesTrackerSearch(j, jobSearch));
   const counts: Record<string, number> = { all: jobs.length };
   for (const j of jobs) counts[j.status] = (counts[j.status] ?? 0) + 1;
 
@@ -90,11 +107,35 @@ export default function MobileJobs() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-extrabold tracking-tight text-stone-900">Jobs</h1>
           <button
-            onClick={() => setAddOpen(true)}
+            onClick={() => openAddJob()}
             className="flex items-center gap-1.5 bg-gradient-to-r from-blue-500 to-violet-600 text-white px-3.5 py-2 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
           >
             <Plus size={15} /> Add
           </button>
+        </div>
+
+        <div className="flex w-full items-center gap-2 mb-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-stone-50/70 px-3 py-2.5 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-200/80">
+            <Search size={16} className="text-stone-400 shrink-0" strokeWidth={2} aria-hidden />
+            <input
+              type="search"
+              value={jobSearch}
+              onChange={(e) => setJobSearch(e.target.value)}
+              placeholder={'Search company\u2026'}
+              className="min-w-0 flex-1 border-0 bg-transparent text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-0"
+              aria-label="Search jobs by company or role"
+            />
+          </div>
+          {jobSearch.trim() !== '' && (
+            <button
+              type="button"
+              onClick={() => setJobSearch('')}
+              className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-stone-200 bg-white px-2.5 py-2 text-[11px] font-semibold text-stone-600 shadow-sm active:scale-95"
+            >
+              <X size={13} strokeWidth={2} />
+              Clear
+            </button>
+          )}
         </div>
 
         {/* Status filter tabs */}
@@ -133,11 +174,15 @@ export default function MobileJobs() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-stone-400 text-sm">
-              {filter === 'all' ? 'No jobs yet.' : `No ${STATUS_LABELS[filter as JobStatus]} jobs.`}
+              {jobSearch.trim() !== '' && jobs.length > 0 && filteredByStatus.length > 0
+                ? 'No matching companies found.'
+                : filter === 'all'
+                  ? 'No jobs yet.'
+                  : `No ${STATUS_LABELS[filter as JobStatus]} jobs.`}
             </p>
-            {filter === 'all' && (
+            {filter === 'all' && jobs.length === 0 && jobSearch.trim() === '' && (
               <button
-                onClick={() => setAddOpen(true)}
+                onClick={() => openAddJob()}
                 className="mt-3 text-sm font-semibold text-violet-600"
               >
                 Add your first application →
@@ -192,7 +237,6 @@ export default function MobileJobs() {
         </div>
       )}
 
-      <JobFormModal open={addOpen} onClose={() => { setAddOpen(false); load(); }} />
       {editJob && (
         <JobFormModal
           open

@@ -14,6 +14,7 @@ interface Props {
   onSelectJob: (job: Job) => void;
   /** When false (e.g. narrow view), column reorder is disabled — no handle, no drag. */
   reorderEnabled: boolean;
+  emptyWhenFiltered?: string;
 }
 
 export default function KanbanSortableColumn({
@@ -22,6 +23,7 @@ export default function KanbanSortableColumn({
   onAddJob,
   onSelectJob,
   reorderEnabled,
+  emptyWhenFiltered,
 }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: column.id,
@@ -43,8 +45,8 @@ export default function KanbanSortableColumn({
       ref={setNodeRef}
       style={style}
       className={`
-        flex w-64 shrink-0 flex-col
-        ${isDragging && reorderEnabled ? 'z-30 rounded-3xl shadow-xl shadow-indigo-500/15 ring-2 ring-indigo-400/40' : ''}
+        flex w-64 shrink-0 flex-col transition-shadow duration-200
+        ${isDragging && reorderEnabled ? 'z-30 rounded-[1.35rem] shadow-[0_20px_48px_-12px_rgba(99,102,241,0.22)] ring-2 ring-indigo-300/40' : ''}
       `}
     >
       <KanbanColumn
@@ -53,6 +55,7 @@ export default function KanbanSortableColumn({
         onAddJob={onAddJob}
         onSelectJob={onSelectJob}
         columnDrag={dragHandle}
+        emptyWhenFiltered={emptyWhenFiltered}
       />
     </div>
   );

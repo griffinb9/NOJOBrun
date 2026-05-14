@@ -91,19 +91,20 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -3, transition: { type: 'spring', stiffness: 320, damping: 24 } }}
-      className="group relative mb-10 overflow-hidden rounded-3xl border border-white/60 bg-[linear-gradient(152deg,#d4ddf0_0%,#c8d4ec_35%,#bac8e6_68%,#b0c2e3_100%)] p-1 shadow-[0_28px_64px_-14px_rgba(30,27,75,0.16),0_10px_48px_-18px_rgba(67,56,202,0.12),0_0_0_1px_rgba(255,255,255,0.68)_inset,0_1px_0_rgba(255,255,255,0.82)_inset] ring-1 ring-indigo-950/[0.08] transition-shadow duration-300 ease-out hover:shadow-[0_34px_72px_-12px_rgba(49,46,129,0.22),0_0_64px_rgba(99,102,241,0.12),0_0_56px_rgba(245,185,66,0.08),0_0_0_1px_rgba(255,255,255,0.72)_inset]"
+      whileHover={{ y: -2, transition: { type: 'spring', stiffness: 340, damping: 26 } }}
+      className="group relative mb-10 overflow-hidden rounded-[1.75rem] border border-white/75 bg-gradient-to-br from-white/80 via-indigo-50/30 to-violet-50/25 p-[1px] shadow-[0_28px_64px_-22px_rgba(30,27,75,0.16),0_0_0_1px_rgba(255,255,255,0.85)_inset] ring-1 ring-slate-900/[0.04] backdrop-blur-xl transition-shadow duration-300 ease-out hover:shadow-[0_36px_72px_-20px_rgba(49,46,129,0.2),0_0_56px_rgba(99,102,241,0.1),0_0_48px_rgba(245,185,66,0.06)]"
     >
-      <div className="pointer-events-none absolute -left-16 -top-12 h-48 w-60 rounded-full bg-indigo-500/[0.18] blur-3xl" aria-hidden />
+      <div className="relative overflow-hidden rounded-[1.7rem] bg-white/[0.72] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-md">
+      <div className="pointer-events-none absolute -left-16 -top-12 h-48 w-60 rounded-full bg-indigo-500/[0.12] blur-3xl" aria-hidden />
       <div className="pointer-events-none absolute -right-14 bottom-0 h-40 w-48 rounded-full bg-sky-500/[0.15] blur-3xl" aria-hidden />
       <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-[85%] -translate-x-1/2 rounded-[100%] bg-violet-400/[0.09] blur-2xl" aria-hidden />
       <div
-        className="rank-card-rim-light pointer-events-none absolute inset-[4px] rounded-[1.4rem] bg-[conic-gradient(from_200deg_at_50%_50%,rgba(99,102,241,0.14),transparent_35%,rgba(56,189,248,0.08),transparent_65%,rgba(245,185,66,0.1),transparent_92%)] opacity-70 mix-blend-soft-light"
+        className="rank-card-rim-light pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[conic-gradient(from_200deg_at_50%_50%,rgba(99,102,241,0.1),transparent_35%,rgba(56,189,248,0.06),transparent_65%,rgba(245,185,66,0.08),transparent_92%)] opacity-60 mix-blend-soft-light"
         aria-hidden
       />
-      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_95%_65%_at_50%_-5%,rgba(255,255,255,0.55),transparent_58%)]" aria-hidden />
-      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_70%_55%_at_92%_88%,rgba(99,102,241,0.12),transparent_55%)]" aria-hidden />
-      <div className="pointer-events-none absolute inset-[5px] rounded-[1.35rem] bg-[radial-gradient(ellipse_45%_40%_at_8%_75%,rgba(56,189,248,0.08),transparent_60%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[radial-gradient(ellipse_95%_65%_at_50%_-5%,rgba(255,255,255,0.5),transparent_58%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[radial-gradient(ellipse_70%_55%_at_92%_88%,rgba(99,102,241,0.08),transparent_55%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[radial-gradient(ellipse_45%_40%_at_8%_75%,rgba(56,189,248,0.06),transparent_60%)]" aria-hidden />
 
       <div className="relative p-5 md:p-7">
         <div
@@ -319,6 +320,7 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
             )}
           </div>
         </div>
+      </div>
       </div>
     </motion.div>
   );

@@ -14,6 +14,7 @@ import {
   TIER_STYLE,
 } from '@/lib/achievements';
 import AchievementBadge from '@/components/ui/AchievementBadge';
+import { useAchievementLevelUpRequest } from '@/components/achievements/AchievementLevelUpProvider';
 
 const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
   jobs_applied:      Send,
@@ -66,6 +67,7 @@ function getMicrocopy(id: string, progressPercent: number, isPlatinum: boolean):
 export default function AchievementsPage({ variant = 'default' }: { variant?: 'default' | 'embedded' }) {
   const [achievements, setAchievements] = useState<ComputedAchievement[]>([]);
   const embedded = variant === 'embedded';
+  const requestAchievementLevelCheck = useAchievementLevelUpRequest();
 
   useEffect(() => {
     async function load() {
@@ -76,9 +78,10 @@ export default function AchievementsPage({ variant = 'default' }: { variant?: 'd
         db.getStories(),
       ]);
       setAchievements(computeAllAchievements({ jobs, pointEvents, stories }));
+      void requestAchievementLevelCheck();
     }
     load();
-  }, []);
+  }, [requestAchievementLevelCheck]);
 
   const earned = achievements.filter((a) => a.count > 0).length;
 

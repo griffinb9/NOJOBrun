@@ -66,7 +66,7 @@ export default function JobStreakCard({ summary, jobs, compact = false }: Props)
         : `${currentStreak} day streak`;
 
   const subtitle = appliedToday
-    ? 'You applied to at least 1 job today. Keep it up! 🔥'
+    ? 'You applied to at least 1 job today. Keep it up.'
     : 'Apply to 1 job today to keep your streak alive.';
 
   const actionHint = appliedToday
@@ -80,8 +80,8 @@ export default function JobStreakCard({ summary, jobs, compact = false }: Props)
     return (
       <div
         className={
-          'group relative overflow-hidden rounded-2xl border border-white/40 bg-gradient-to-br from-[#cfd6e4] via-[#c6cfdf] to-[#bac4d8] '
-          + 'p-3.5 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.12)] ring-1 ring-slate-900/[0.04]'
+          'group relative overflow-hidden rounded-2xl border border-white/55 bg-gradient-to-br from-white/70 via-indigo-50/25 to-violet-50/20 '
+          + 'p-3.5 shadow-[0_12px_36px_-14px_rgba(30,27,75,0.12)] ring-1 ring-slate-900/[0.03] backdrop-blur-md transition-shadow duration-300 hover:shadow-[0_18px_44px_-14px_rgba(99,102,241,0.14)]'
         }
       >
         <div className="relative flex flex-row items-center gap-3">
@@ -145,7 +145,7 @@ export default function JobStreakCard({ summary, jobs, compact = false }: Props)
 
   return (
     <div
-      className="group relative overflow-hidden rounded-3xl border border-white/40 bg-gradient-to-br from-[#cfd6e4] via-[#c6cfdf] to-[#bac4d8] p-6 shadow-[0_22px_52px_-14px_rgba(15,23,42,0.14),0_0_0_1px_rgba(255,255,255,0.5)_inset] ring-1 ring-slate-900/[0.05] transition-transform duration-300 ease-out hover:scale-[1.006] hover:shadow-[0_26px_56px_-12px_rgba(15,23,42,0.16)] sm:p-8"
+      className="group relative overflow-hidden rounded-3xl border border-white/55 bg-gradient-to-br from-white/75 via-indigo-50/22 to-sky-50/15 p-6 shadow-[0_22px_52px_-18px_rgba(30,27,75,0.12),0_0_0_1px_rgba(255,255,255,0.65)_inset] ring-1 ring-slate-900/[0.04] backdrop-blur-md transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_28px_60px_-16px_rgba(99,102,241,0.16)] sm:p-8"
     >
       <div
         className="pointer-events-none absolute -left-1/4 -top-24 h-48 w-[150%] bg-gradient-to-b from-indigo-300/22 via-indigo-400/5 to-transparent blur-2xl"
