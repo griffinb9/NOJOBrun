@@ -21,6 +21,7 @@ import {
   type AchievementNotification,
 } from './types';
 import { mergeHasResponseForSave } from './job-response';
+import { applyApplicationGrade } from './applicationGrade';
 import { normalizeTrackerColumnOrder } from './trackerColumns';
 import { computeJobStreak } from './job-streak';
 import { maxApplicationsInOneDay, countUnlockedAchievements } from './friend-stats';
@@ -67,7 +68,18 @@ interface ApplicationRow {
   notes: string | null; contact_name: string | null; contact_email: string | null;
   sort_order: number | null;
   has_response: boolean | null;
+  follow_up_sent: boolean | null;
+  follow_up_sent_at: string | null;
+  interview_self_score: number | null;
+  interview_self_notes: string | null;
+  application_grade: string | null;
+  application_grade_updated_at: string | null;
   created_at: string; updated_at: string;
+}
+
+function prepareJobForSave(prior: Job | null | undefined, next: Job): Job {
+  const withResponse = mergeHasResponseForSave(prior ?? undefined, next);
+  return applyApplicationGrade(withResponse, next.updatedAt);
 }
 
 interface StoryRow {
@@ -206,6 +218,12 @@ function rowToJob(r: ApplicationRow): Job {
     contactEmail: r.contact_email ?? undefined,
     sortOrder: r.sort_order ?? undefined,
     hasResponse: r.has_response ?? false,
+    followUpSent: r.follow_up_sent ?? false,
+    followUpSentAt: r.follow_up_sent_at ?? undefined,
+    interviewSelfScore: r.interview_self_score ?? undefined,
+    interviewSelfNotes: r.interview_self_notes ?? undefined,
+    applicationGrade: (r.application_grade as Job['applicationGrade']) ?? undefined,
+    applicationGradeUpdatedAt: r.application_grade_updated_at ?? undefined,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
@@ -224,6 +242,12 @@ function jobToRow(j: Job, userId: string): ApplicationRow {
     contact_email: j.contactEmail ?? null,
     sort_order: j.sortOrder ?? null,
     has_response: j.hasResponse ?? false,
+    follow_up_sent: j.followUpSent ?? false,
+    follow_up_sent_at: j.followUpSentAt ?? null,
+    interview_self_score: j.interviewSelfScore ?? null,
+    interview_self_notes: j.interviewSelfNotes ?? null,
+    application_grade: j.applicationGrade ?? null,
+    application_grade_updated_at: j.applicationGradeUpdatedAt ?? null,
     created_at: j.createdAt, updated_at: j.updatedAt,
   };
 }
@@ -383,7 +407,11 @@ export const db = {
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
-    return (data ?? []).map((r) => rowToJob(r as ApplicationRow));
+    return (data ?? []).map((r) => {
+      const job = rowToJob(r as ApplicationRow);
+      if (job.applicationGrade) return job;
+      return applyApplicationGrade(job);
+    });
   },
 
   async saveJobs(jobs: Job[]): Promise<void> {
@@ -391,7 +419,7 @@ export const db = {
     const userId = await uid();
     const existing = await db.getJobs();
     const byId = new Map(existing.map((j) => [j.id, j]));
-    const merged = jobs.map((j) => mergeHasResponseForSave(byId.get(j.id), j));
+    const merged = jobs.map((j) => prepareJobForSave(byId.get(j.id) ?? null, j));
     await supabase
       .from('applications')
       .upsert(merged.map((j) => jobToRow(j, userId)), { onConflict: 'id' });
@@ -402,7 +430,7 @@ export const db = {
 
   async addJob(job: Job): Promise<void> {
     const userId = await uid();
-    const merged = mergeHasResponseForSave(undefined, job);
+    const merged = prepareJobForSave(undefined, job);
     await supabase.from('applications').insert(jobToRow(merged, userId));
     const fresh = await db.getJobs();
     await db.syncJobStreakFromJobs(fresh);
@@ -412,7 +440,7 @@ export const db = {
   async updateJob(job: Job): Promise<void> {
     const userId = await uid();
     const prior = await db.getJob(job.id);
-    const merged = mergeHasResponseForSave(prior ?? undefined, job);
+    const merged = prepareJobForSave(prior ?? null, job);
     await supabase
       .from('applications')
       .update(jobToRow(merged, userId))

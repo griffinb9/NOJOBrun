@@ -1,12 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import { Job, STATUS_COLORS, STATUS_LABELS } from '@/lib/types';
 import { db } from '@/lib/db';
 import { formatDate } from '@/lib/utils';
 import JobFormModal from './JobFormModal';
 import EmailGenerator from '@/components/emails/EmailGenerator';
+import ApplicationGradeBadge from '@/components/jobs/ApplicationGradeBadge';
+import {
+  explainApplicationGrade,
+  interviewSelfScoreLabel,
+  parseInterviewSelfNotes,
+} from '@/lib/applicationGrade';
 import Link from 'next/link';
 
 interface Props {
@@ -17,9 +23,14 @@ interface Props {
 
 type Tab = 'details' | 'emails' | 'prep';
 
-export default function JobDetailModal({ job, onClose, onEdit }: Props) {
+export default function JobDetailModal({ job: initialJob, onClose, onEdit }: Props) {
+  const [job, setJob] = useState(initialJob);
   const [tab, setTab] = useState<Tab>('details');
   const [editOpen, setEditOpen] = useState(false);
+
+  useEffect(() => {
+    setJob(initialJob);
+  }, [initialJob]);
 
   async function deleteJob() {
     if (!confirm('Delete this job?')) return;
@@ -46,6 +57,7 @@ export default function JobDetailModal({ job, onClose, onEdit }: Props) {
                 <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[job.status]}`}>
                   {STATUS_LABELS[job.status]}
                 </span>
+                <ApplicationGradeBadge job={job} size="md" />
               </div>
               <p className="text-stone-500 text-sm mt-0.5">{job.role}</p>
             </div>
@@ -111,7 +123,14 @@ export default function JobDetailModal({ job, onClose, onEdit }: Props) {
         <JobFormModal
           open={editOpen}
           job={job}
-          onClose={() => { setEditOpen(false); onEdit(job); }}
+          onClose={async () => {
+            setEditOpen(false);
+            const fresh = await db.getJob(job.id);
+            if (fresh) {
+              setJob(fresh);
+              onEdit(fresh);
+            }
+          }}
         />
       )}
     </>
@@ -129,8 +148,25 @@ function Row({ label, value }: { label: string; value?: string }) {
 }
 
 function DetailsTab({ job }: { job: Job }) {
+  const selfNotes = parseInterviewSelfNotes(job.interviewSelfNotes);
+
   return (
     <div className="space-y-3">
+      <div className="rounded-xl border border-stone-200/90 bg-stone-50/80 px-3 py-2.5">
+        <p className="text-xs font-medium text-stone-500 mb-1">Application grade</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <ApplicationGradeBadge job={job} size="md" />
+          <p className="text-xs text-stone-600 leading-snug">{explainApplicationGrade(job)}</p>
+        </div>
+      </div>
+      {job.followUpSent && (
+        <Row label="Follow-up" value={job.followUpSentAt ? `Sent ${formatDate(job.followUpSentAt)}` : 'Sent'} />
+      )}
+      {job.interviewSelfScore != null && (
+        <Row label="Self-score" value={`${job.interviewSelfScore}/5 — ${interviewSelfScoreLabel(job.interviewSelfScore)}`} />
+      )}
+      {selfNotes.wentWell && <Row label="Went well" value={selfNotes.wentWell} />}
+      {selfNotes.couldImprove && <Row label="Could improve" value={selfNotes.couldImprove} />}
       <Row label="Company" value={job.company} />
       <Row label="Role" value={job.role} />
       <Row label="Location" value={job.location} />

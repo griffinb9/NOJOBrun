@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { X, Star } from 'lucide-react';
 import { Job, JobStatus, KANBAN_COLUMNS } from '@/lib/types';
 import { db } from '@/lib/db';
 import { newId, now } from '@/lib/utils';
@@ -15,6 +15,16 @@ import {
   writeJobAddDraftFull,
   type JobAddDraftFormV1,
 } from '@/lib/jobFormDraftSession';
+import { useModalScrollLock } from '@/lib/useModalScrollLock';
+import {
+  applyApplicationGrade,
+  explainApplicationGrade,
+  interviewSelfScoreLabel,
+  serializeInterviewSelfNotes,
+  type InterviewSelfNotes,
+} from '@/lib/applicationGrade';
+import ApplicationGradeBadge from '@/components/jobs/ApplicationGradeBadge';
+import InterviewSelfScoreModal from '@/components/jobs/InterviewSelfScoreModal';
 
 interface Props {
   open: boolean;
@@ -25,7 +35,9 @@ interface Props {
   persistDraft?: boolean;
 }
 
-const empty: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> = {
+type JobFormState = Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'applicationGrade' | 'applicationGradeUpdatedAt'>;
+
+const empty: JobFormState = {
   company: '',
   role: '',
   location: '',
@@ -38,9 +50,15 @@ const empty: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> = {
   notes: '',
   contactName: '',
   contactEmail: '',
+  followUpSent: false,
+  followUpSentAt: undefined,
+  interviewSelfScore: undefined,
+  interviewSelfNotes: undefined,
+  hasResponse: false,
 };
 
-function formToDraftShape(f: typeof empty): JobAddDraftFormV1 {
+function formToDraftShape(f: JobFormState): JobAddDraftFormV1 {
+
   return {
     company: f.company,
     role: f.role,
@@ -57,8 +75,9 @@ function formToDraftShape(f: typeof empty): JobAddDraftFormV1 {
   };
 }
 
-function draftShapeToForm(d: JobAddDraftFormV1): typeof empty {
+function draftShapeToForm(d: JobAddDraftFormV1): JobFormState {
   return {
+    ...empty,
     company: d.company,
     role: d.role,
     location: d.location,
@@ -83,8 +102,13 @@ export default function JobFormModal({ open, onClose, job, initialStatus, persis
   const baselineDateRef = useRef<string>('');
   const prevOpenRef = useRef(false);
 
+  const isAddJobFlow = Boolean(persistDraft && !job);
+  useModalScrollLock(open && isAddJobFlow);
+
+  const [selfScoreOpen, setSelfScoreOpen] = useState(false);
+
   const flushDraft = useCallback(
-    (modalOpen: boolean, formArg: typeof empty, interviewInputArg: string, initStatus: JobStatus) => {
+    (modalOpen: boolean, formArg: JobFormState, interviewInputArg: string, initStatus: JobStatus) => {
       if (!persistDraft || job) return;
       writeJobAddDraftFull({
         modalOpen,
@@ -120,6 +144,11 @@ export default function JobFormModal({ open, onClose, job, initialStatus, persis
         notes: job.notes ?? '',
         contactName: job.contactName ?? '',
         contactEmail: job.contactEmail ?? '',
+        followUpSent: job.followUpSent ?? false,
+        followUpSentAt: job.followUpSentAt,
+        interviewSelfScore: job.interviewSelfScore,
+        interviewSelfNotes: job.interviewSelfNotes,
+        hasResponse: job.hasResponse ?? false,
       });
       setInterviewInput('');
       return;
@@ -160,6 +189,63 @@ export default function JobFormModal({ open, onClose, job, initialStatus, persis
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  function setFollowUpSent(checked: boolean) {
+    const ts = now();
+    setForm((f) => ({
+      ...f,
+      followUpSent: checked,
+      followUpSentAt: checked ? (f.followUpSentAt ?? ts) : undefined,
+    }));
+  }
+
+  function handleSelfScoreSave(score: number, notes: InterviewSelfNotes) {
+    setForm((f) => ({
+      ...f,
+      interviewSelfScore: score,
+      interviewSelfNotes: serializeInterviewSelfNotes(notes),
+    }));
+  }
+
+  const gradePreviewJob = useMemo((): Job | null => {
+    if (!job) return null;
+    const draft: Job = {
+      ...job,
+      ...form,
+      salary: form.salary || undefined,
+    };
+    return applyApplicationGrade(draft);
+  }, [job, form]);
+
+  function buildPayload(ts: string): Job {
+    const followUpSent = form.followUpSent ?? false;
+    const base: Job = {
+      ...(job ?? { id: '', createdAt: ts }),
+      company: form.company.trim(),
+      role: form.role.trim(),
+      location: form.location?.trim() || undefined,
+      salary: (form.salary ?? '').trim() || undefined,
+      status: form.status,
+      dateApplied: form.dateApplied || undefined,
+      interviewDates: form.interviewDates ?? [],
+      jobUrl: form.jobUrl?.trim() || undefined,
+      jobDescription: form.jobDescription?.trim() || undefined,
+      notes: form.notes?.trim() || undefined,
+      contactName: form.contactName?.trim() || undefined,
+      contactEmail: form.contactEmail?.trim() || undefined,
+      followUpSent,
+      followUpSentAt: followUpSent ? (form.followUpSentAt ?? ts) : undefined,
+      interviewSelfScore: form.interviewSelfScore,
+      interviewSelfNotes: form.interviewSelfNotes,
+      hasResponse: job?.hasResponse,
+      updatedAt: ts,
+    };
+    if (!job) {
+      const id = newId();
+      return { ...base, id, createdAt: ts };
+    }
+    return { ...base, id: job.id, createdAt: job.createdAt };
+  }
+
   function addInterviewDate() {
     if (!interviewInput) return;
     setForm((f) => ({ ...f, interviewDates: [...(f.interviewDates ?? []), interviewInput] }));
@@ -198,8 +284,11 @@ export default function JobFormModal({ open, onClose, job, initialStatus, persis
     const salaryOut = (form.salary ?? '').trim() || undefined;
 
     try {
+      const payload = buildPayload(ts);
+      payload.salary = salaryOut;
+
       if (job) {
-        await db.updateJob({ ...job, ...form, salary: salaryOut, updatedAt: ts });
+        await db.updateJob(payload);
 
         if (form.status !== job.status) {
           if (form.status === 'recruiter_screen') await awardPoints('status_recruiter_screen', job.id, `Screen earned for ${form.company}`);
@@ -210,8 +299,8 @@ export default function JobFormModal({ open, onClose, job, initialStatus, persis
 
         if (form.notes?.trim()) await awardPoints('notes_added', job.id);
       } else {
-        const id = newId();
-        await db.addJob({ ...form, id, salary: salaryOut, createdAt: ts, updatedAt: ts });
+        const id = payload.id;
+        await db.addJob(payload);
         await awardPoints('application_added', id);
 
         if (form.status === 'recruiter_screen') await awardPoints('status_recruiter_screen', id, `Screen earned for ${form.company}`);
@@ -231,124 +320,242 @@ export default function JobFormModal({ open, onClose, job, initialStatus, persis
 
   if (!open) return null;
 
+  const title = job ? 'Edit Job' : 'Add Job';
+
+  const formBody = (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Company *">
+          <input value={form.company} onChange={(e) => set('company', e.target.value)} placeholder="Acme Corp" />
+        </Field>
+        <Field label="Role *">
+          <input value={form.role} onChange={(e) => set('role', e.target.value)} placeholder="Software Engineer" />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Location">
+          <input value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="Remote" />
+        </Field>
+        <Field label="Salary / Comp">
+          <SalaryRangeSelect value={form.salary ?? ''} onChange={(v) => set('salary', v)} />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Status">
+          <select value={form.status} onChange={(e) => set('status', e.target.value as JobStatus)}>
+            {KANBAN_COLUMNS.map((c) => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Date Applied">
+          <input type="date" value={form.dateApplied} onChange={(e) => set('dateApplied', e.target.value)} />
+        </Field>
+      </div>
+
+      <Field label="Job URL">
+        <input value={form.jobUrl} onChange={(e) => set('jobUrl', e.target.value)} placeholder="https://..." />
+      </Field>
+
+      <Field label="Interview Dates">
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={interviewInput}
+            onChange={(e) => setInterviewInput(e.target.value)}
+            className="flex-1"
+          />
+          <button
+            type="button"
+            onClick={addInterviewDate}
+            className="rounded-lg bg-violet-50 px-3 py-2 text-sm font-medium text-violet-600 hover:bg-violet-100"
+          >
+            Add
+          </button>
+        </div>
+        {(form.interviewDates ?? []).length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {form.interviewDates!.map((d) => (
+              <span key={d} className="flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-xs text-violet-700">
+                {d}
+                <button type="button" onClick={() => removeInterviewDate(d)} className="hover:text-red-500">×</button>
+              </span>
+            ))}
+          </div>
+        )}
+      </Field>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Contact Name">
+          <input value={form.contactName} onChange={(e) => set('contactName', e.target.value)} placeholder="Jane Smith" />
+        </Field>
+        <Field label="Contact Email">
+          <input value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} placeholder="jane@acme.com" />
+        </Field>
+      </div>
+
+      <Field label="Job Description">
+        <textarea
+          value={form.jobDescription}
+          onChange={(e) => set('jobDescription', e.target.value)}
+          rows={4}
+          placeholder="Paste the job description here..."
+        />
+      </Field>
+
+      <Field label="Notes">
+        <textarea
+          value={form.notes}
+          onChange={(e) => set('notes', e.target.value)}
+          rows={3}
+          placeholder="Any notes..."
+        />
+      </Field>
+
+      <div className="rounded-xl border border-stone-200/90 bg-stone-50/60 p-3.5 space-y-3">
+        <label className="flex cursor-pointer items-center gap-2.5">
+          <input
+            type="checkbox"
+            checked={form.followUpSent ?? false}
+            onChange={(e) => setFollowUpSent(e.target.checked)}
+            className="h-4 w-4 rounded border-stone-300 text-violet-600 focus:ring-violet-300"
+          />
+          <span className="text-sm font-medium text-stone-700">Follow-up sent</span>
+        </label>
+        {form.followUpSent && form.followUpSentAt && (
+          <p className="text-[11px] text-stone-500 pl-6">
+            Marked {new Date(form.followUpSentAt).toLocaleDateString()}
+          </p>
+        )}
+
+        {job && (
+          <>
+            <div className="flex flex-wrap items-center gap-2 border-t border-stone-200/80 pt-3">
+              <button
+                type="button"
+                onClick={() => setSelfScoreOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200/80 bg-white px-3 py-2 text-xs font-semibold text-violet-700 shadow-sm transition hover:border-violet-300 hover:bg-violet-50"
+              >
+                <Star size={14} strokeWidth={2.25} />
+                Interview Self Score
+                {form.interviewSelfScore != null && (
+                  <span className="rounded-md bg-violet-100 px-1.5 py-0.5 tabular-nums">
+                    {form.interviewSelfScore}/5
+                  </span>
+                )}
+              </button>
+              {gradePreviewJob && (
+                <ApplicationGradeBadge job={gradePreviewJob} size="md" />
+              )}
+            </div>
+            {gradePreviewJob && (
+              <p className="text-[11px] leading-snug text-stone-500">
+                {explainApplicationGrade(gradePreviewJob)}
+              </p>
+            )}
+            {form.interviewSelfScore != null && (
+              <p className="text-[11px] text-stone-600">
+                Self-score: {interviewSelfScoreLabel(form.interviewSelfScore)}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  const formActions = (
+    <>
+      <button type="button" onClick={attemptClose} className="rounded-lg px-4 py-2 text-sm text-stone-500 hover:text-stone-700">
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={save}
+        disabled={!form.company.trim() || !form.role.trim() || saving}
+        className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-40"
+      >
+        {saving ? 'Saving…' : job ? 'Save Changes' : 'Add Job'}
+      </button>
+    </>
+  );
+
+  const scoreModal = (
+    <InterviewSelfScoreModal
+      open={selfScoreOpen}
+      onClose={() => setSelfScoreOpen(false)}
+      initialScore={form.interviewSelfScore}
+      initialNotes={form.interviewSelfNotes}
+      onSave={handleSelfScoreSave}
+    />
+  );
+
+  if (isAddJobFlow) {
+    return (
+      <>
+      <div
+        className="fixed inset-0 z-50 flex flex-col md:items-center md:justify-center md:p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="job-form-modal-title"
+      >
+        <div
+          className="absolute inset-0 touch-none bg-black/40 md:bg-black/30"
+          onClick={attemptClose}
+          onTouchMove={(e) => e.preventDefault()}
+          aria-hidden
+        />
+        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col bg-white shadow-xl max-md:max-h-[100dvh] md:max-h-[90vh] md:max-w-lg md:flex-initial md:rounded-2xl">
+          <div className="flex shrink-0 items-center justify-between border-b border-stone-100 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:border-0 md:px-6 md:pt-6 md:pb-0">
+            <h2 id="job-form-modal-title" className="text-lg font-semibold text-stone-800">
+              {title}
+            </h2>
+            <button type="button" onClick={attemptClose} className="text-stone-400 hover:text-stone-600">
+              <X size={20} />
+            </button>
+          </div>
+          <div
+            data-modal-scroll
+            className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 md:max-h-[calc(90vh-8rem)] md:px-6"
+          >
+            {formBody}
+          </div>
+          <div className="flex shrink-0 gap-2 border-t border-stone-100 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:mt-6 md:justify-end md:border-0 md:px-6 md:pb-6 md:pt-0">
+            {formActions}
+          </div>
+        </div>
+      </div>
+      {scoreModal}
+      </>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30" onClick={attemptClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-stone-800">{job ? 'Edit Job' : 'Add Job'}</h2>
+    <>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="job-form-modal-title"
+    >
+      <div className="absolute inset-0 bg-black/30" onClick={attemptClose} aria-hidden />
+      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 id="job-form-modal-title" className="text-lg font-semibold text-stone-800">
+            {title}
+          </h2>
           <button type="button" onClick={attemptClose} className="text-stone-400 hover:text-stone-600">
             <X size={20} />
           </button>
         </div>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Company *">
-              <input value={form.company} onChange={(e) => set('company', e.target.value)} placeholder="Acme Corp" />
-            </Field>
-            <Field label="Role *">
-              <input value={form.role} onChange={(e) => set('role', e.target.value)} placeholder="Software Engineer" />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Location">
-              <input value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="Remote" />
-            </Field>
-            <Field label="Salary / Comp">
-              <SalaryRangeSelect value={form.salary ?? ''} onChange={(v) => set('salary', v)} />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Status">
-              <select value={form.status} onChange={(e) => set('status', e.target.value as JobStatus)}>
-                {KANBAN_COLUMNS.map((c) => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Date Applied">
-              <input type="date" value={form.dateApplied} onChange={(e) => set('dateApplied', e.target.value)} />
-            </Field>
-          </div>
-
-          <Field label="Job URL">
-            <input value={form.jobUrl} onChange={(e) => set('jobUrl', e.target.value)} placeholder="https://..." />
-          </Field>
-
-          <Field label="Interview Dates">
-            <div className="flex gap-2">
-              <input
-                type="date"
-                value={interviewInput}
-                onChange={(e) => setInterviewInput(e.target.value)}
-                className="flex-1"
-              />
-              <button
-                type="button"
-                onClick={addInterviewDate}
-                className="px-3 py-2 bg-violet-50 text-violet-600 rounded-lg text-sm font-medium hover:bg-violet-100"
-              >
-                Add
-              </button>
-            </div>
-            {(form.interviewDates ?? []).length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {form.interviewDates!.map((d) => (
-                  <span key={d} className="flex items-center gap-1 text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full">
-                    {d}
-                    <button type="button" onClick={() => removeInterviewDate(d)} className="hover:text-red-500">×</button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </Field>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Contact Name">
-              <input value={form.contactName} onChange={(e) => set('contactName', e.target.value)} placeholder="Jane Smith" />
-            </Field>
-            <Field label="Contact Email">
-              <input value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} placeholder="jane@acme.com" />
-            </Field>
-          </div>
-
-          <Field label="Job Description">
-            <textarea
-              value={form.jobDescription}
-              onChange={(e) => set('jobDescription', e.target.value)}
-              rows={4}
-              placeholder="Paste the job description here..."
-            />
-          </Field>
-
-          <Field label="Notes">
-            <textarea
-              value={form.notes}
-              onChange={(e) => set('notes', e.target.value)}
-              rows={3}
-              placeholder="Any notes..."
-            />
-          </Field>
-        </div>
-
-        <div className="flex gap-2 mt-6 justify-end">
-          <button type="button" onClick={attemptClose} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700 rounded-lg">
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={save}
-            disabled={!form.company.trim() || !form.role.trim() || saving}
-            className="px-4 py-2 text-sm bg-violet-600 text-white rounded-xl hover:bg-violet-700 font-medium disabled:opacity-40"
-          >
-            {saving ? 'Saving…' : job ? 'Save Changes' : 'Add Job'}
-          </button>
-        </div>
+        {formBody}
+        <div className="mt-6 flex justify-end gap-2">{formActions}</div>
       </div>
     </div>
+    {scoreModal}
+    </>
   );
 }
 

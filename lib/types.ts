@@ -1,5 +1,7 @@
 export type JobStatus = 'applied' | 'recruiter_screen' | 'interviewing' | 'offer' | 'rejected' | 'ghosted';
 
+export type ApplicationGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+
 export interface UserProfile {
   id: string;
   fullName: string;
@@ -42,6 +44,14 @@ export interface Job {
   sortOrder?: number;
   /** True once the job has ever been in screen, interviewing, or offer (sticky). */
   hasResponse?: boolean;
+  followUpSent?: boolean;
+  followUpSentAt?: string;
+  /** 1–5 self-rating after a screen/interview */
+  interviewSelfScore?: number;
+  /** JSON: { wentWell?, couldImprove? } */
+  interviewSelfNotes?: string;
+  applicationGrade?: ApplicationGrade;
+  applicationGradeUpdatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

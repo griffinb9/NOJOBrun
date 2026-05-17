@@ -16,6 +16,7 @@ import { autoGhostStaleApplications } from '@/lib/autoGhost';
 import { jobMatchesTrackerSearch } from '@/lib/jobSearch';
 import { formatDate } from '@/lib/utils';
 import JobFormModal from '@/components/jobs/JobFormModal';
+import ApplicationGradeBadge from '@/components/jobs/ApplicationGradeBadge';
 import { useOpenAddJob } from '@/components/jobs/JobAddModalProvider';
 import { subscribeJobsMutated } from '@/lib/jobsMutateEvents';
 import { useAchievementLevelUpRequest } from '@/components/achievements/AchievementLevelUpProvider';
@@ -288,9 +289,12 @@ function JobCard({ job, onEdit, onMoveStatus, onRefresh }: CardProps) {
       <div className="px-4 pt-3.5 pb-3">
         {/* Job info */}
         <div className="flex items-start justify-between gap-2 mb-2.5">
-          <div className="min-w-0">
-            <p className="font-bold text-stone-900 text-sm leading-tight truncate">{job.company}</p>
-            <p className="text-xs text-stone-400 mt-0.5 truncate">{job.role}</p>
+          <div className="flex min-w-0 items-start gap-2">
+            <ApplicationGradeBadge job={job} className="mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="font-bold text-stone-900 text-sm leading-tight truncate">{job.company}</p>
+              <p className="text-xs text-stone-400 mt-0.5 truncate">{job.role}</p>
+            </div>
           </div>
           <button
             onClick={onMoveStatus}

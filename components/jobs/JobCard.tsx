@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { MapPin, DollarSign, Calendar, Pencil } from 'lucide-react';
 import { Job, STATUS_BORDER } from '@/lib/types';
 import { applicationAgeDays } from '@/lib/autoGhost';
+import ApplicationGradeBadge from '@/components/jobs/ApplicationGradeBadge';
 
 interface Props {
   job: Job;
@@ -80,6 +81,10 @@ export default function JobCard({ job, onSelect, isDragging }: Props) {
         transition-[transform,box-shadow,opacity,border-color] duration-200 ease-out
       `}
     >
+      <div className="absolute left-2.5 top-2.5 z-10">
+        <ApplicationGradeBadge job={job} />
+      </div>
+
       <div className="absolute right-2.5 top-2.5 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
         <button
           type="button"
@@ -93,7 +98,7 @@ export default function JobCard({ job, onSelect, isDragging }: Props) {
       </div>
 
       <div
-        className={`truncate pr-7 text-[0.8125rem] font-semibold leading-snug tracking-tight ${isSettled ? 'text-slate-600' : 'text-slate-900'}`}
+        className={`truncate pl-8 pr-7 text-[0.8125rem] font-semibold leading-snug tracking-tight ${isSettled ? 'text-slate-600' : 'text-slate-900'}`}
       >
         {job.company}
       </div>

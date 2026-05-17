@@ -46,7 +46,7 @@ export default function AppGate({ children }: { children: React.ReactNode }) {
         {/* ── Mobile layout ───────────────────────────────────────── */}
         <div className="md:hidden flex flex-col min-h-screen pb-16">
           {showPageOnMobile ? (
-            <main className="flex-1 overflow-y-auto">{children}</main>
+            <main data-scroll-lock-root className="flex-1 overflow-y-auto">{children}</main>
           ) : (
             <MobileLayout />
           )}

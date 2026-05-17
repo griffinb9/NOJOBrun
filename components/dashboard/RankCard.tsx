@@ -92,19 +92,19 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       whileHover={{ y: -2, transition: { type: 'spring', stiffness: 340, damping: 26 } }}
-      className="group relative mb-10 overflow-hidden rounded-[1.75rem] border border-white/75 bg-gradient-to-br from-white/80 via-indigo-50/30 to-violet-50/25 p-[1px] shadow-[0_28px_64px_-22px_rgba(30,27,75,0.16),0_0_0_1px_rgba(255,255,255,0.85)_inset] ring-1 ring-slate-900/[0.04] backdrop-blur-xl transition-shadow duration-300 ease-out hover:shadow-[0_36px_72px_-20px_rgba(49,46,129,0.2),0_0_56px_rgba(99,102,241,0.1),0_0_48px_rgba(245,185,66,0.06)]"
+      className="group relative mb-10 overflow-hidden rounded-[1.75rem] border border-white/80 bg-gradient-to-br from-white/85 via-indigo-100/40 to-violet-100/35 p-[1px] shadow-[0_32px_72px_-22px_rgba(49,46,129,0.22),0_0_0_1px_rgba(255,255,255,0.88)_inset] ring-1 ring-indigo-200/25 backdrop-blur-xl transition-shadow duration-300 ease-out hover:shadow-[0_40px_80px_-20px_rgba(49,46,129,0.26),0_0_64px_rgba(99,102,241,0.14),0_0_52px_rgba(245,185,66,0.08)]"
     >
-      <div className="relative overflow-hidden rounded-[1.7rem] bg-white/[0.72] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-md">
-      <div className="pointer-events-none absolute -left-16 -top-12 h-48 w-60 rounded-full bg-indigo-500/[0.12] blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute -right-14 bottom-0 h-40 w-48 rounded-full bg-sky-500/[0.15] blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-[85%] -translate-x-1/2 rounded-[100%] bg-violet-400/[0.09] blur-2xl" aria-hidden />
+      <div className="relative overflow-hidden rounded-[1.7rem] bg-gradient-to-br from-white/[0.78] via-indigo-50/25 to-violet-50/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.98)] backdrop-blur-md">
+      <div className="pointer-events-none absolute -left-16 -top-12 h-52 w-64 rounded-full bg-indigo-500/[0.16] blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -right-14 bottom-0 h-44 w-52 rounded-full bg-sky-500/[0.18] blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-36 w-[90%] -translate-x-1/2 rounded-[100%] bg-violet-400/[0.12] blur-2xl" aria-hidden />
       <div
-        className="rank-card-rim-light pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[conic-gradient(from_200deg_at_50%_50%,rgba(99,102,241,0.1),transparent_35%,rgba(56,189,248,0.06),transparent_65%,rgba(245,185,66,0.08),transparent_92%)] opacity-60 mix-blend-soft-light"
+        className="rank-card-rim-light pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[conic-gradient(from_200deg_at_50%_50%,rgba(99,102,241,0.14),transparent_32%,rgba(56,189,248,0.1),transparent_62%,rgba(245,185,66,0.12),transparent_90%)] opacity-70 mix-blend-soft-light"
         aria-hidden
       />
-      <div className="pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[radial-gradient(ellipse_95%_65%_at_50%_-5%,rgba(255,255,255,0.5),transparent_58%)]" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[radial-gradient(ellipse_70%_55%_at_92%_88%,rgba(99,102,241,0.08),transparent_55%)]" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[radial-gradient(ellipse_45%_40%_at_8%_75%,rgba(56,189,248,0.06),transparent_60%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[radial-gradient(ellipse_95%_65%_at_50%_-5%,rgba(255,255,255,0.58),transparent_55%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[radial-gradient(ellipse_70%_55%_at_92%_88%,rgba(99,102,241,0.12),transparent_52%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 rounded-[1.65rem] bg-[radial-gradient(ellipse_45%_40%_at_8%_75%,rgba(56,189,248,0.09),transparent_58%)]" aria-hidden />
 
       <div className="relative p-5 md:p-7">
         <div
@@ -125,7 +125,7 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
                   style={{
                     background: 'linear-gradient(165deg, rgba(255,255,255,0.98), rgba(241,245,253,0.94), rgba(238,242,255,0.88))',
                     boxShadow:
-                      'inset 0 1px 0 rgba(255,255,255,0.98), 0 12px 40px rgba(30,27,75,0.11), 0 0 32px rgba(99,102,241,0.12), 0 0 20px rgba(139,92,246,0.06), 0 0 0 1px rgba(255,255,255,0.5)',
+                      'inset 0 1px 0 rgba(255,255,255,0.98), 0 14px 44px rgba(30,27,75,0.13), 0 0 40px rgba(99,102,241,0.16), 0 0 28px rgba(139,92,246,0.1), 0 0 0 1px rgba(255,255,255,0.55)',
                     minWidth: 92,
                     minHeight: 92,
                   }}
@@ -209,15 +209,15 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
           <div
             className={`streak-widget-shell group/streak relative shrink-0 overflow-hidden rounded-2xl border bg-white/60 p-3.5 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-0.5 lg:w-[13.75rem] ${
               streakActive
-                ? 'border-[#F5B942]/50 ring-1 ring-[#FF8A3D]/32 ring-offset-0 streak-widget-active-glow hover:border-[#FF8A3D]/58 hover:ring-[#F5B942]/38 hover:shadow-[0_16px_40px_-10px_rgba(49,46,129,0.16),0_0_40px_rgba(249,115,22,0.22),0_0_56px_rgba(245,185,66,0.14),0_0_0_1px_rgba(255,255,255,0.72)_inset]'
+                ? 'border-[#F5B942]/55 ring-1 ring-[#FF8A3D]/38 ring-offset-0 streak-widget-active-glow hover:border-[#FF8A3D]/65 hover:ring-[#F5B942]/45 hover:shadow-[0_18px_44px_-10px_rgba(49,46,129,0.18),0_0_48px_rgba(249,115,22,0.28),0_0_64px_rgba(245,185,66,0.18),0_0_0_1px_rgba(255,255,255,0.75)_inset]'
                 : 'border-indigo-200/55 ring-1 ring-slate-200/65 shadow-[0_12px_32px_-10px_rgba(49,46,129,0.12),0_0_16px_rgba(245,185,66,0.04),0_0_0_1px_rgba(255,255,255,0.68)_inset] hover:shadow-[0_14px_32px_-10px_rgba(49,46,129,0.14)]'
             }`}
           >
             <div
               className={`pointer-events-none absolute left-3 right-3 top-3 h-px rounded-full opacity-90 ${
                 streakActive
-                  ? 'bg-gradient-to-r from-transparent via-[#FF8A3D]/45 to-transparent'
-                  : 'bg-gradient-to-r from-transparent via-[#F5B942]/18 to-transparent'
+                  ? 'bg-gradient-to-r from-transparent via-[#FF8A3D]/55 to-transparent'
+                  : 'bg-gradient-to-r from-transparent via-[#F5B942]/22 to-transparent'
               }`}
               aria-hidden
             />
@@ -226,7 +226,7 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
                 className="pointer-events-none absolute -inset-px rounded-2xl opacity-[0.4]"
                 style={{
                   background:
-                    'radial-gradient(ellipse 90% 65% at 50% 0%, rgba(249,115,22,0.1), transparent 58%), radial-gradient(ellipse 55% 45% at 92% 42%, rgba(245,185,66,0.14), transparent 55%)',
+                    'radial-gradient(ellipse 90% 65% at 50% 0%, rgba(249,115,22,0.14), transparent 55%), radial-gradient(ellipse 55% 45% at 92% 42%, rgba(245,185,66,0.18), transparent 52%)',
                 }}
                 aria-hidden
               />
@@ -265,7 +265,7 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
                 <p
                   className={`min-w-0 flex-1 leading-[1.1] tracking-tight ${
                     streakActive
-                      ? 'bg-gradient-to-br from-[#9a3412] via-[#ea580c] to-[#fbbf24] bg-clip-text text-[1.35rem] font-black text-transparent drop-shadow-[0_1px_0_rgba(255,255,255,0.35),0_0_24px_rgba(249,115,22,0.22),0_0_40px_rgba(245,185,66,0.12)] sm:text-[1.55rem]'
+                      ? 'bg-gradient-to-br from-[#9a3412] via-[#ea580c] to-[#fbbf24] bg-clip-text text-[1.35rem] font-black text-transparent drop-shadow-[0_1px_0_rgba(255,255,255,0.4),0_0_28px_rgba(249,115,22,0.28),0_0_48px_rgba(245,185,66,0.16)] sm:text-[1.55rem]'
                       : 'bg-gradient-to-br from-slate-800 via-slate-700 to-slate-600 bg-clip-text text-[1.2rem] font-black text-transparent sm:text-[1.35rem]'
                   }`}
                 >
@@ -282,7 +282,7 @@ export default function RankCard({ refreshKey, streakSummary }: Props) {
                     </defs>
                   </svg>
                   {streakActive ? (
-                    <div className="relative flex h-[3.55rem] w-[3.55rem] items-center justify-center rounded-full bg-gradient-to-b from-white/60 via-orange-50/40 to-[#ffedd5]/55 shadow-[0_8px_28px_rgba(249,115,22,0.32),0_0_0_1px_rgba(255,255,255,0.58)_inset,inset_0_-2px_10px_rgba(234,88,12,0.1)] ring-[3px] ring-[#FF8A3D]/45 transition-shadow duration-300 group-hover/streak:shadow-[0_10px_32px_rgba(249,115,22,0.42),0_0_32px_rgba(245,185,66,0.26),0_0_0_1px_rgba(255,255,255,0.65)_inset] sm:h-[3.75rem] sm:w-[3.75rem]">
+                    <div className="relative flex h-[3.55rem] w-[3.55rem] items-center justify-center rounded-full bg-gradient-to-b from-white/65 via-orange-50/45 to-[#ffedd5]/60 shadow-[0_10px_32px_rgba(249,115,22,0.38),0_0_0_1px_rgba(255,255,255,0.62)_inset,inset_0_-2px_10px_rgba(234,88,12,0.12)] ring-[3px] ring-[#FF8A3D]/50 transition-shadow duration-300 group-hover/streak:shadow-[0_12px_36px_rgba(249,115,22,0.48),0_0_40px_rgba(245,185,66,0.32),0_0_0_1px_rgba(255,255,255,0.7)_inset] sm:h-[3.75rem] sm:w-[3.75rem]">
                       <span className="pointer-events-none absolute inset-[-14px] rounded-full bg-[radial-gradient(circle,rgba(249,115,22,0.22)_0%,transparent_68%)] opacity-90" aria-hidden />
                       <span className="streak-flame-aura pointer-events-none absolute inset-[-12px] rounded-full bg-gradient-to-br from-[#F5B942]/6 via-[#FF8A3D]/38 to-[#f97316]/28 blur-xl transition-opacity duration-300 group-hover/streak:opacity-100 group-hover/streak:blur-[1.15rem]" />
                       <span className="pointer-events-none absolute inset-[3px] rounded-full bg-gradient-to-t from-orange-200/30 to-transparent opacity-75" />

@@ -49,6 +49,22 @@ create index if not exists applications_user_id_idx on public.applications(user_
 -- Existing DBs: add sticky response flag + backfill
 alter table public.applications add column if not exists has_response boolean default false not null;
 
+-- Application grade & follow-up / self-score
+alter table public.applications add column if not exists follow_up_sent boolean default false not null;
+alter table public.applications add column if not exists follow_up_sent_at timestamptz;
+alter table public.applications add column if not exists interview_self_score smallint;
+alter table public.applications add column if not exists interview_self_notes text;
+alter table public.applications add column if not exists application_grade text;
+alter table public.applications add column if not exists application_grade_updated_at timestamptz;
+
+alter table public.applications drop constraint if exists applications_interview_self_score_range;
+alter table public.applications add constraint applications_interview_self_score_range
+  check (interview_self_score is null or (interview_self_score >= 1 and interview_self_score <= 5));
+
+alter table public.applications drop constraint if exists applications_application_grade_check;
+alter table public.applications add constraint applications_application_grade_check
+  check (application_grade is null or application_grade in ('A', 'B', 'C', 'D', 'F'));
+
 update public.applications
 set has_response = true
 where status in ('recruiter_screen', 'interviewing', 'offer');

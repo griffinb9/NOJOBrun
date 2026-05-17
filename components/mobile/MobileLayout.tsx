@@ -10,7 +10,7 @@ export default function MobileLayout() {
   const { tab } = useMobileNav();
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-y-contain">
+    <div data-scroll-lock-root className="flex-1 overflow-y-auto overscroll-y-contain">
       {tab === 'home' && <MobileHome />}
       {tab === 'jobs' && <MobileJobs />}
       {tab === 'achievements' && <MobileAchievements />}

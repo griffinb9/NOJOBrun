@@ -77,17 +77,17 @@ a, button, [role='button'] {
   0%,
   100% {
     box-shadow:
-      0 12px 32px -10px rgba(49, 46, 129, 0.14),
-      0 0 26px rgba(249, 115, 22, 0.14),
-      0 0 36px rgba(245, 185, 66, 0.12),
-      0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+      0 14px 36px -10px rgba(49, 46, 129, 0.16),
+      0 0 32px rgba(249, 115, 22, 0.18),
+      0 0 44px rgba(245, 185, 66, 0.16),
+      0 0 0 1px rgba(255, 255, 255, 0.68) inset;
   }
   50% {
     box-shadow:
-      0 14px 36px -10px rgba(49, 46, 129, 0.15),
-      0 0 34px rgba(249, 115, 22, 0.2),
-      0 0 48px rgba(245, 185, 66, 0.16),
-      0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+      0 16px 40px -10px rgba(49, 46, 129, 0.18),
+      0 0 40px rgba(249, 115, 22, 0.26),
+      0 0 56px rgba(245, 185, 66, 0.22),
+      0 0 0 1px rgba(255, 255, 255, 0.75) inset;
   }
 }
 
@@ -204,15 +204,15 @@ a, button, [role='button'] {
   0%,
   100% {
     transform: translate(0, 0) scale(1);
-    opacity: 0.22;
+    opacity: 0.32;
   }
   33% {
     transform: translate(6px, -14px) scale(1.05);
-    opacity: 0.38;
+    opacity: 0.52;
   }
   66% {
     transform: translate(-4px, 8px) scale(0.96);
-    opacity: 0.28;
+    opacity: 0.4;
   }
 }
 
@@ -253,10 +253,12 @@ a, button, [role='button'] {
 @keyframes rank-card-rim-shift {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.62;
+    filter: hue-rotate(0deg);
   }
   50% {
-    opacity: 0.85;
+    opacity: 0.92;
+    filter: hue-rotate(8deg);
   }
 }
 
@@ -269,14 +271,45 @@ a, button, [role='button'] {
   0%,
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translate(0, 0);
   }
   50% {
-    opacity: 0.92;
-    transform: scale(1.02);
+    opacity: 0.94;
+    transform: scale(1.025) translate(0.5%, -0.35%);
   }
 }
 
 .dashboard-mesh-breathe {
   animation: dashboard-mesh-breathe 18s ease-in-out infinite;
+}
+
+/* Dashboard stat tiles — soft inner glow on hover */
+@keyframes dashboard-stat-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+.dashboard-stat-ambient {
+  animation: dashboard-stat-glow 5s ease-in-out infinite;
+}
+
+/* Hero title — slow iridescent depth (decorative underlay) */
+@keyframes dashboard-title-shine {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.dashboard-title-gradient {
+  background-size: 200% auto;
+  animation: dashboard-title-shine 12s ease-in-out infinite;
 }
